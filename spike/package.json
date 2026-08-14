@@ -1,0 +1,8 @@
+{
+  "name": "attestor-spike",
+  "private": true,
+  "type": "module",
+  "description": "Keyless end-to-end proof that the Attestcoin pipeline works: Sepolia tx -> hosted prover -> on-chain verification on CC3 Testnet, plus two rejected forgeries.",
+  "scripts": { "start": "node spike.mjs" },
+  "dependencies": { "@gluwa/usc-sdk": "^0.18.0", "ethers": "^6.13.0" }
+}
