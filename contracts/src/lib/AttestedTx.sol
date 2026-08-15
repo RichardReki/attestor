@@ -3,7 +3,14 @@ pragma solidity 0.8.25;
 
 /// Decodes the `bytes[]` transaction encoding that Attestcoin's BlockProver precompile verifies.
 ///
-/// The encoder (`gluwa/usc-sdk`, `encoding/abi` v1) splits a source transaction into chunks:
+/// The envelope is `(uint8 txType, bytes[] chunks)` — NOT `bytes[]`, whatever the SDK says. Its own
+/// `encoding/abi/v1` documentation instructs you to decode with "Type: `bytes[]`", and the
+/// implementation three lines below that comment encodes `['uint8', 'bytes[]']`. A consumer written
+/// from the documentation cannot decode a single real transaction; we only found this by dumping
+/// the bytes a live proof actually contained. The leading `uint8` is the transaction type, and it
+/// is there deliberately so the type can be read without decoding the rest.
+///
+/// Inside, the chunks are:
 ///
 ///   chunks[0]        common fields, IDENTICAL for every transaction type
 ///   chunks[1..n-2]   type-specific fields (gas pricing, access list, signature, blob hashes …)
@@ -27,6 +34,7 @@ library AttestedTx {
         bytes data; // selector ++ arguments
         uint64 nonce;
         uint8 status; // 1 == success. Attestcoin proves inclusion, NOT success.
+        uint8 txType; // 0 legacy, 1 access-list, 2 EIP-1559, 3 blob, 4 EIP-7702
     }
 
     error NoChunks();
@@ -36,7 +44,8 @@ library AttestedTx {
     /// Decode the encoded transaction the precompile just verified.
     /// @param encodedTransaction the `txBytes` field of a proof, ABI-encoded as `bytes[]`.
     function decode(bytes calldata encodedTransaction) internal pure returns (Call memory c) {
-        bytes[] memory chunks = abi.decode(encodedTransaction, (bytes[]));
+        bytes[] memory chunks;
+        (c.txType, chunks) = abi.decode(encodedTransaction, (uint8, bytes[]));
         // Two chunks is already impossible (common + type-specific + receipt is the minimum), but
         // the arithmetic below underflows on an empty array, so bound it explicitly.
         if (chunks.length < 2) revert NoChunks();

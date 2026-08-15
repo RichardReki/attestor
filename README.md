@@ -34,9 +34,11 @@ that treats "attested" as "happened the way I wanted" is exploitable. Ours check
 | freshness / deadline | attested facts stay provable forever; authority should not |
 | tx-hash consumption | otherwise one authorisation replays without limit |
 
-## Three things we found that the documentation does not say
+## Five things we found that the documentation does not say
 
-Recorded here as we hit them, with reproductions in `spike/`.
+Recorded here as we hit them. The first two are reproducible from `spike/`; the last two are pinned
+by tests in `contracts/test/`, against a real attested Sepolia transaction rather than data we
+encoded ourselves.
 
 **1. The precompile reverts; it does not return `false`.** `@gluwa/usc-sdk` types
 `verifySingle(): Promise<boolean>` and documents "resolving to true if verification succeeds,
@@ -67,6 +69,23 @@ implying real-time.
 A contract that hardcodes `chainKey == 1` and is promoted from testnet to mainnet **silently changes
 which chain it trusts**, with no code change and no error. Bind to `chainId` via the ChainInfo
 precompile (`0x…0FD3`), not to `chainKey`. This is the sharpest attack in our demo.
+
+**4. The names differ between the SDK and the chain, in both directions.** The BlockProver function
+is `verify` on-chain, not the SDK's `verifySingle` — a Solidity interface transcribed from the SDK
+produces a selector the precompile does not have, and fails for a reason with nothing to do with
+your proof. ChainInfo goes the other way: on-chain it is snake_case (`get_chain_by_key`,
+`is_height_attested`), camelCase only in the SDK.
+
+**5. The proof envelope is `(uint8 txType, bytes[] chunks)`, not `bytes[]` — and the SDK documents
+the wrong one.** `encoding/abi/v1` says, verbatim, "To decode it: Type: `bytes[]`". Three lines
+below that comment its own implementation encodes `['uint8', 'bytes[]']`. A consumer written from
+the documentation cannot decode a single real transaction. We found it only by dumping the bytes a
+live proof actually contained, and `test_envelopeIsNotBareBytesArray` now pins it.
+
+Inside the envelope, the receipt is the **last** chunk and the chunk count varies by transaction
+type — three for legacy/access-list/EIP-1559, four for blob. Reading the receipt as `chunks[2]`
+works on every transaction you are likely to test with and misreads a blob transaction, so
+`AttestedTx` indexes from the end.
 
 ## Environment
 

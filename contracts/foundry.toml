@@ -9,6 +9,8 @@ optimizer_runs = 200
 # The 7-field ABI decode in AttestedTx exceeds the legacy pipeline's stack limit. via-IR is the
 # documented remedy and the codebase is small enough that the extra compile time is free.
 via_ir = true
+# The decoder test reads a captured real-world proof rather than a hand-written one.
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
 
 [rpc_endpoints]
 sepolia = "https://ethereum-sepolia-rpc.publicnode.com"

@@ -1,0 +1,7 @@
+{
+  "name": "attestor-tools",
+  "private": true,
+  "type": "module",
+  "scripts": { "fixture": "node tools/capture-fixture.mjs" },
+  "dependencies": { "@gluwa/usc-sdk": "^0.18.0", "ethers": "^6.13.0" }
+}
