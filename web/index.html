@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attestor — evidence</title>
+<style>
+  :root{
+    /* The palette splits on the one distinction this system is about: what is settled, and what is
+       not yet knowable. Bone is settled. Haze is the gap. */
+    --ink:#0B1015; --panel:#121A21; --rule:#1E2A34; --rule-soft:#17212A;
+    --bone:#E9E3D5; --muted:#74838F; --faint:#48565F;
+    --haze:#9A7644;
+    /* Reserved for one thing only: a proof that should have been refused and was not. If you ever
+       see this colour on this page, something is wrong. */
+    --alarm:#DD5540;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--ink); color:var(--bone);
+    font:15px/1.65 var(--sans); letter-spacing:.005em;
+    padding:clamp(20px,5vw,64px) clamp(16px,5vw,48px) 96px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  /* Monospace is the display face. The material is heights, selectors and revert strings; a serif
+     would be a costume. */
+  h1,h2,.fig,.lbl,th,code{font-family:var(--mono)}
+
+  .top{display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;justify-content:space-between;
+       border-bottom:1px solid var(--rule);padding-bottom:14px}
+  h1{margin:0;font-size:clamp(19px,2.4vw,24px);font-weight:600;letter-spacing:-.02em}
+  h1 span{color:var(--faint);font-weight:400}
+  .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  #net .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);
+            margin-right:7px;vertical-align:middle}
+  #net.on .dot{background:var(--bone)}
+
+  .thesis{margin:clamp(40px,7vw,72px) 0 clamp(32px,5vw,52px);max-width:22ch}
+  .thesis p{margin:0;font-family:var(--mono);font-size:clamp(22px,4.2vw,38px);line-height:1.24;
+            letter-spacing:-.03em;font-weight:600}
+  .thesis p+p{color:var(--muted);font-weight:400;margin-top:.5em}
+  .thesis+.sub{margin:-24px 0 0;max-width:56ch;color:var(--muted);font-size:14px}
+
+  /* ---- the gap instrument: the signature element ---- */
+  .gap{margin:clamp(44px,7vw,76px) 0;border-top:1px solid var(--rule);padding-top:22px}
+  .gap-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+  .ruler{position:relative;height:70px}
+  .track{position:absolute;left:0;right:0;top:34px;height:1px;background:var(--rule)}
+  .band{position:absolute;top:23px;height:23px;
+        background:repeating-linear-gradient(-45deg,
+          color-mix(in srgb,var(--haze) 34%,transparent) 0 2px,
+          transparent 2px 6px);
+        border-left:1px solid color-mix(in srgb,var(--haze) 70%,transparent);
+        border-right:1px solid color-mix(in srgb,var(--haze) 70%,transparent);
+        transition:left .5s ease,right .5s ease}
+  @media (prefers-reduced-motion:reduce){.band{transition:none}}
+  .band-note{position:absolute;top:52px;font-family:var(--mono);font-size:11px;color:var(--haze);
+             letter-spacing:.05em;white-space:nowrap;transform:translateX(-50%);transition:left .5s ease}
+  .pin{position:absolute;top:23px;width:1px;height:23px;background:var(--bone)}
+  .pin.head{right:0} .pin.att{left:0}
+  .end{position:absolute;top:0;font-family:var(--mono)}
+  .end .fig{display:block;font-size:clamp(15px,2.1vw,19px);letter-spacing:-.02em}
+  .end .lbl{display:block;margin-top:2px}
+  .end.l{left:0} .end.r{right:0;text-align:right}
+
+  /* ---- generic section furniture ---- */
+  section{margin:clamp(48px,8vw,84px) 0 0;border-top:1px solid var(--rule);padding-top:22px}
+  h2{margin:0 0 6px;font-size:14px;font-weight:600;letter-spacing:.02em}
+  .note{margin:0 0 26px;color:var(--muted);font-size:14px;max-width:66ch}
+  code{background:var(--panel);border:1px solid var(--rule-soft);border-radius:3px;
+       padding:1px 5px;font-size:.88em;color:var(--bone)}
+
+  .split{display:grid;gap:clamp(20px,4vw,44px);grid-template-columns:1fr}
+  @media (min-width:760px){.split{grid-template-columns:.85fr 1.15fr}}
+  .split ul{margin:10px 0 0;padding:0;list-style:none}
+  .split li{padding:9px 0;border-top:1px solid var(--rule-soft);font-size:14px}
+  .split li:first-child{border-top:0}
+  .split .no li{color:var(--muted)}
+  .split .no li b{color:var(--bone);font-weight:500}
+
+  .scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
+  table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+     font-weight:400;padding:0 16px 10px 0;border-bottom:1px solid var(--rule)}
+  td{padding:11px 16px 11px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  td:last-child,th:last-child{padding-right:0}
+  tbody tr:hover td{background:color-mix(in srgb,var(--panel) 60%,transparent)}
+  .err{font-family:var(--mono);font-size:12.5px;color:var(--bone);white-space:nowrap}
+  .who{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+       color:var(--muted);white-space:nowrap}
+  .bad{color:var(--alarm)}
+
+  ol.finds{margin:0;padding:0;counter-reset:f;list-style:none}
+  ol.finds li{counter-increment:f;position:relative;padding:14px 0 14px 46px;
+              border-top:1px solid var(--rule-soft);font-size:14px;color:var(--muted)}
+  ol.finds li:first-child{border-top:0}
+  ol.finds li::before{content:counter(f,decimal-leading-zero);position:absolute;left:0;top:14px;
+                      font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.08em}
+  ol.finds b{color:var(--bone);font-weight:500}
+
+  footer{margin-top:clamp(48px,8vw,84px);border-top:1px solid var(--rule);padding-top:18px;
+         color:var(--faint);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 22px}
+  a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--rule)}
+  a:hover{color:var(--bone);border-color:var(--muted)}
+  a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>Attestor <span>/ evidence</span></h1>
+    <div class="lbl" id="net"><span class="dot"></span><span id="net-t">reading cc3-testnet…</span></div>
+  </div>
+
+  <div class="thesis">
+    <p>An agent may propose anything.</p>
+    <p>It cannot fabricate the fact it acts on.</p>
+  </div>
+  <p class="sub">
+    Authorisations happen on Ethereum Sepolia. An off-chain agent decides which ones to carry to
+    Creditcoin. A contract there re-derives every one from the proven transaction, so the agent's
+    judgement is never the last word — and neither is ours.
+  </p>
+
+  <!-- The signature element. It exists because the 32-block reorg-protection window appears in one
+       error string and in no documentation; once you know it is there, the gap is the honest way to
+       describe what this system can and cannot know. -->
+  <div class="gap">
+    <div class="gap-head">
+      <div>
+        <h2>The gap is the constraint</h2>
+        <p class="note" style="margin-bottom:0">
+          A Sepolia block cannot be proven until it is attested, and the prover refuses anything
+          inside a 32-block reorg-protection window. Everything between these two marks is real,
+          final on Sepolia, and not yet provable on Creditcoin. An agent built here acts on facts
+          that are minutes old. We show the number rather than imply real time.
+        </p>
+      </div>
+    </div>
+    <div class="ruler" id="ruler">
+      <div class="track"></div>
+      <div class="band" id="band"></div>
+      <div class="band-note" id="band-note">—</div>
+      <div class="pin att"></div><div class="pin head"></div>
+      <div class="end l"><span class="fig" id="att">—</span><span class="lbl">attested</span></div>
+      <div class="end r"><span class="fig" id="head">—</span><span class="lbl">sepolia head</span></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>What a proof settles</h2>
+    <p class="note">
+      Attestcoin answers one question, precisely. Reading it as an answer to a larger one is where a
+      consumer contract gets exploited, so the governor treats everything on the right as its own job.
+    </p>
+    <div class="split">
+      <div>
+        <div class="lbl">It proves</div>
+        <ul><li>This transaction was included in a confirmed Sepolia block.</li></ul>
+      </div>
+      <div class="no">
+        <div class="lbl">It does not prove</div>
+        <ul>
+          <li><b>That it succeeded.</b> A reverted transaction sits in the block and proves perfectly.</li>
+          <li><b>That it called your contract.</b> Any contract's call carries the same weight.</li>
+          <li><b>That it called your function.</b> The right contract, the wrong entry point.</li>
+          <li><b>That the sender was authorised.</b> Authority belongs to the signer, not the relayer.</li>
+          <li><b>That it is recent.</b> An attested fact stays provable for ever.</li>
+          <li><b>That you have not already acted on it.</b> Nothing stops a second submission.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the governor refuses</h2>
+    <p class="note">
+      Every row is a test. Refusals are shown in the same colour as everything else on this page,
+      because in this system a refusal is the correct outcome — the only alarming result would be an
+      acceptance, and that is the one thing here that would turn red.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Attack</th><th>Refused by</th><th>Error</th></tr></thead>
+        <tbody id="atk"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Behaviour the documentation does not describe</h2>
+    <p class="note">
+      Found while building, each one load-bearing. Two of them make a consumer written from the
+      documentation fail outright.
+    </p>
+    <ol class="finds">
+      <li>The BlockProver precompile <b>reverts on a bad proof</b>. The SDK types it
+        <code>Promise&lt;boolean&gt;</code> and documents "false otherwise", so an
+        <code>if (!verified)</code> branch is dead code.</li>
+      <li>End-to-end latency is <b>about eight minutes</b> — a 32-block reorg-protection window, named
+        only inside a <code>BlockNotOnSourceChain</code> error, plus roughly 39 blocks of attestation lag.</li>
+      <li><b><code>chainKey</code> is environment-scoped.</b> Key 1 is Sepolia here and Ethereum mainnet
+        on CC3 Mainnet, so a contract promoted between them silently changes which chain it trusts.
+        Bind to <code>chainId</code>.</li>
+      <li>Names differ from the SDK in both directions: the precompile function is
+        <code>verify</code>, not <code>verifySingle</code>, and ChainInfo is snake_case on-chain.</li>
+      <li>The proof envelope is <b><code>(uint8 txType, bytes[] chunks)</code></b>, not
+        <code>bytes[]</code> — which is what the SDK's own comment, three lines above the
+        implementation that contradicts it, tells you to decode.</li>
+      <li>The precompiles <b>cannot be fork-tested</b>. They are Substrate runtime code, so
+        <code>eth_getCode</code> returns <code>0x</code>; a forked node has nothing there, and calls
+        to a codeless address succeed silently. Fork tests pass the wrong assertions.</li>
+      <li><code>get_chain_by_key</code> returns <b>one tuple</b> containing <code>(Chain, bool)</code>,
+        not two values. <code>Chain</code> holds a <code>bytes</code>, so the encodings differ by a
+        level of indirection. Every mocked test passed; the live chain always reverted.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Ethereum Sepolia → Creditcoin CC3 Testnet</span>
+    <span>BlockProver <code>0x…0FD2</code> · ChainInfo <code>0x…0FD3</code></span>
+    <a href="https://github.com/RichardReki/attestor">Source</a>
+  </footer>
+</div>
+
+<script>
+const CC3 = 'https://rpc.cc3-testnet.creditcoin.network';
+const SEP = 'https://ethereum-sepolia-rpc.publicnode.com';
+const CHAIN_INFO = '0x0000000000000000000000000000000000000fd3';
+// get_latest_attestation_height_and_hash(uint64) -> (uint64 height, bytes32, bool, bool), all static.
+const LATEST_ATTESTED = '0x809112da';
+const REORG_WINDOW = 32;
+const SEPOLIA_BLOCK_SECONDS = 12;
+
+// Every row here is a test in the repository, and the error strings are the ones actually produced.
+// Rows attributed to the precompile were observed against the live runtime, not a mock.
+const ATTACKS = [
+  ['Tampered transaction bytes',            'precompile', 'Merkle proof validation failed'],
+  ['Genuine proof, replayed under another chainKey', 'precompile', 'Merkle proof validation failed'],
+  ['Valid proof from the wrong source chain', 'governor', 'WrongChain'],
+  ['Proof for a chainKey this network does not support', 'governor', 'UnsupportedChainKey'],
+  ['Proven transaction that reverted on Sepolia', 'governor', 'SourceReverted'],
+  ['Right function, impostor contract',      'governor', 'WrongSource'],
+  ['Right contract, different function',      'governor', 'WrongSelector'],
+  ['Authorising an address that did not sign', 'governor', 'Unauthorised'],
+  ['Authorisation used after its deadline',   'governor', 'Stale'],
+  ['Authorisation granted for ever',          'governor', 'Overlong'],
+  ['The same proof submitted twice',          'governor', 'AlreadyConsumed'],
+  ['Contract creation, which has no callee',  'decoder',  'ContractCreation'],
+];
+
+const $ = (id) => document.getElementById(id);
+
+for (const [attack, who, err] of ATTACKS) {
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td>${attack}</td><td class="who">${who}</td><td class="err">${err}</td>`;
+  $('atk').appendChild(tr);
+}
+
+const rpc = async (url, method, params) => {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+};
+
+const fmt = (n) => n.toLocaleString('en-US');
+
+function paint(attested, head) {
+  $('att').textContent = fmt(attested);
+  $('head').textContent = fmt(head);
+
+  const span = Math.max(head - attested, 1);
+  // The unprovable region runs from the attested height to the reorg cutoff below the head.
+  const cutoff = Math.max(head - REORG_WINDOW, attested);
+  const left = 0;
+  const right = ((head - cutoff) / span) * 100;
+  $('band').style.left = left + '%';
+  $('band').style.right = right + '%';
+
+  const secs = span * SEPOLIA_BLOCK_SECONDS;
+  const mins = Math.floor(secs / 60);
+  $('band-note').style.left = ((100 - right) / 2) + '%';
+  $('band-note').textContent =
+    `${fmt(span)} blocks unprovable · ~${mins}m${String(secs % 60).padStart(2, '0')}s`;
+}
+
+async function refresh() {
+  try {
+    const [attestedRaw, headRaw] = await Promise.all([
+      rpc(CC3, 'eth_call', [{ to: CHAIN_INFO, data: LATEST_ATTESTED + '1'.padStart(64, '0') }, 'latest']),
+      rpc(SEP, 'eth_blockNumber', []),
+    ]);
+    const attested = parseInt(attestedRaw.slice(2, 66), 16);
+    const head = parseInt(headRaw, 16);
+    if (!attested || !head) throw new Error('empty response');
+    paint(attested, head);
+    $('net').classList.add('on');
+    $('net-t').textContent = 'live · cc3-testnet';
+  } catch (e) {
+    // Say what happened and what is on screen instead. A dashboard that fails silently is worse
+    // than one that fails.
+    $('net').classList.remove('on');
+    $('net-t').textContent = 'live read unavailable — showing a recorded reading';
+    if ($('att').textContent === '—') paint(11493500, 11493539);
+  }
+}
+
+refresh();
+setInterval(refresh, 30_000);
+</script>
+</body>
+</html>
