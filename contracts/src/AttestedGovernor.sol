@@ -77,9 +77,9 @@ contract AttestedGovernor {
         // 1. CHAIN. Resolve the key to a real chain id before believing anything about it. This runs
         //    first: if the key names the wrong chain, the proof may be perfectly valid and still
         //    irrelevant, and we would rather say so than spend gas proving it.
-        (IChainInfo.Chain memory chain, bool exists) = CHAIN_INFO.get_chain_by_key(chainKey);
-        if (!exists) revert UnsupportedChainKey(chainKey);
-        if (chain.chainId != expectedChainId) revert WrongChain(chainKey, chain.chainId, expectedChainId);
+        IChainInfo.ChainResult memory r = CHAIN_INFO.get_chain_by_key(chainKey);
+        if (!r.exists) revert UnsupportedChainKey(chainKey);
+        if (r.chain.chainId != expectedChainId) revert WrongChain(chainKey, r.chain.chainId, expectedChainId);
 
         // 2. PROOF. The precompile reverts rather than returning false, so `try` is not defensive
         //    styling here — it is the only way to tell "this proof is a forgery" apart from "this

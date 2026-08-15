@@ -79,6 +79,16 @@ const fixture = {
 // Record how many chunks this transaction type produced — the count that varies, and that a
 // consumer must not hardcode.
 const { AbiCoder } = await import('ethers');
+
+// Store the two proof structs ABI-encoded exactly as IBlockProver declares them, so the fork test
+// can abi.decode them straight into Solidity structs instead of walking JSON field by field.
+fixture.proofEncoded = AbiCoder.defaultAbiCoder().encode(
+  ['tuple(bytes32,tuple(bytes32,bool)[])', 'tuple(bytes32,bytes32[])'],
+  [
+    [p.merkleProof.root, p.merkleProof.siblings.map((s) => [s.hash, s.isLeft])],
+    [p.continuityProof.lowerEndpointDigest, p.continuityProof.roots],
+  ],
+);
 // (uint8 txType, bytes[] chunks) — NOT bytes[], despite what the SDK's own docs say.
 const [envType, envChunks] = AbiCoder.defaultAbiCoder().decode(['uint8', 'bytes[]'], p.txBytes);
 fixture.chunkCount = envChunks.length;

@@ -48,6 +48,19 @@ interface IChainInfo {
         uint8 chainEncoding;
     }
 
+    /// What `get_chain_by_key` returns: ONE tuple containing the chain and a found flag.
+    ///
+    /// The distinction is not cosmetic. The precompile's ABI is
+    /// `get_chain_by_key(uint64) -> (((uint64,uint64,bytes,uint8),bool))` — note the doubled
+    /// parentheses. Declaring it as two return values, `returns (Chain memory, bool)`, is a
+    /// different encoding: `Chain` contains a `bytes`, so it is dynamic, and the single-tuple form
+    /// carries one extra level of indirection. We had it wrong, and every mocked test still passed
+    /// because the mock encoded it the same wrong way; only calling the live precompile exposed it.
+    struct ChainResult {
+        Chain chain;
+        bool exists;
+    }
+
     /// Resolve a chainKey to the chain it actually denotes in THIS environment.
     ///
     /// This lookup is the whole defence against Attestcoin's sharpest footgun: `chainKey` is scoped
@@ -56,7 +69,7 @@ interface IChainInfo {
     /// contract that hardcodes `chainKey == 1` and is promoted from testnet to mainnet silently
     /// changes which chain it trusts, with no code change, no migration and no error. Bind to
     /// `chainId`; treat `chainKey` as an untrusted input to be resolved.
-    function get_chain_by_key(uint64 chainKey) external view returns (Chain memory chain, bool exists);
+    function get_chain_by_key(uint64 chainKey) external view returns (ChainResult memory);
 
     function is_height_attested(uint64 chainKey, uint64 height) external view returns (bool);
 }
