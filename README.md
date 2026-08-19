@@ -10,12 +10,17 @@ rule disposes — and nothing from it is reused: different chain, different prot
 
 ## Status
 
-Day 1. The feasibility gate is closed: a real Ethereum Sepolia transaction has been proven on
-Creditcoin CC3 Testnet through the Attestcoin BlockProver precompile, and two forged variants were
-rejected on-chain. Reproduce it yourself, with no key and no gas:
+The source half is deployed and the security core is done. 34 tests pass — 21 on the contracts,
+13 on the agent — and six claims about the precompiles are re-checked against the live CC3 runtime
+on every run, because mocked tests cannot make claims about a precompile they are mocking. What
+remains is the first end-to-end execution, which is waiting on CC3 testnet funding.
+
+Reproduce the whole proof pipeline yourself, with no key and no gas:
 
 ```bash
-cd spike && npm install && node spike.mjs
+cd spike && npm install && node spike.mjs      # Sepolia tx -> proof -> verified on CC3
+cd contracts && forge test                     # 21 tests, including 12 rejected attacks
+node tools/live-check.mjs                      # the precompile assumptions, against the real chain
 ```
 
 ## What Attestcoin actually guarantees — and what it does not
@@ -34,11 +39,11 @@ that treats "attested" as "happened the way I wanted" is exploitable. Ours check
 | freshness / deadline | attested facts stay provable forever; authority should not |
 | tx-hash consumption | otherwise one authorisation replays without limit |
 
-## Five things we found that the documentation does not say
+## Seven things we found that the documentation does not say
 
-Recorded here as we hit them. The first two are reproducible from `spike/`; the last two are pinned
-by tests in `contracts/test/`, against a real attested Sepolia transaction rather than data we
-encoded ourselves.
+Recorded as we hit them, each one load-bearing. Two of them make a consumer written from the
+documentation fail outright, and one of those two is a bug we shipped ourselves before the live
+checks caught it — see 7.
 
 **1. The precompile reverts; it does not return `false`.** `@gluwa/usc-sdk` types
 `verifySingle(): Promise<boolean>` and documents "resolving to true if verification succeeds,
@@ -86,6 +91,21 @@ Inside the envelope, the receipt is the **last** chunk and the chunk count varie
 type — three for legacy/access-list/EIP-1559, four for blob. Reading the receipt as `chunks[2]`
 works on every transaction you are likely to test with and misreads a blob transaction, so
 `AttestedTx` indexes from the end.
+
+**6. The precompiles cannot be fork-tested, and the failure is silent.** They are Substrate runtime
+code, so `eth_getCode` at `0x0FD2` returns `0x`. A forked node therefore has nothing at that
+address, and a `CALL` to a codeless address *succeeds* and returns no data — so a fork test of
+"a tampered proof is rejected" does not fail loudly, it passes the wrong assertion. We built
+`LiveProbe` instead: it does its work in a constructor and returns the findings as runtime
+bytecode, so `eth_call` with no `to` runs the real contracts against the real precompiles with no
+key, no gas and nothing deployed.
+
+**7. `get_chain_by_key` returns one tuple containing `(Chain, bool)`, not two return values.** The
+ABI is `get_chain_by_key(uint64) -> (((uint64,uint64,bytes,uint8),bool))` — note the doubled
+parentheses. `Chain` holds a `bytes`, so it is dynamic, and the single-tuple form carries an extra
+level of indirection. We had it wrong. Every mocked test passed, because the mock encoded it the
+same wrong way; on the real chain it reverted every time. This is the concrete reason the live
+checks exist, and it is why we do not treat a green unit suite as evidence about a precompile.
 
 ## Deployed
 
