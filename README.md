@@ -87,6 +87,13 @@ type — three for legacy/access-list/EIP-1559, four for blob. Reading the recei
 works on every transaction you are likely to test with and misreads a blob transaction, so
 `AttestedTx` indexes from the end.
 
+## Deployed
+
+| | |
+| --- | --- |
+| `SourceAuthorization` (Sepolia) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://sepolia.etherscan.io/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
+| `AttestedGovernor` (CC3 Testnet) | not yet deployed |
+
 ## Environment
 
 | | |
