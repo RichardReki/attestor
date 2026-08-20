@@ -122,12 +122,12 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 
 | | |
 | --- | --- |
-| `MockUSD` + `LoanRepayment` (Sepolia) | deploy in one command — `forge script script/Deploy.s.sol:DeploySource --rpc-url sepolia --broadcast` |
+| `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) |
+| `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
 | `AttestedLoanBook` (CC3 Testnet) | pending — waiting on CC3 testnet funds |
 
-An earlier generic build of the source contract is live at
-[`0xe31906a2…`](https://sepolia.etherscan.io/address/0xe31906a2A7162b865b672a3a51B75813564db5e9); it
-proved the pipeline before the product settled on the loan model above.
+Deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. An earlier generic build of the source
+contract (`0xe31906a2…`) proved the pipeline before the product settled on the loan model above.
 
 ## Environment
 
