@@ -17,7 +17,7 @@ rule disposes — and nothing from it is reused: different chain, different prot
 ## Status
 
 The security core is done and the proof pipeline is verified end to end against the live
-precompiles. 41 tests pass — 21 on the contracts, 20 on the agent — and six claims about the
+precompiles. 48 tests pass — 28 on the contracts, 20 on the agent — and six claims about the
 precompiles are re-checked against the live CC3 runtime on every run (via `tools/live-check.mjs`),
 because mocked tests cannot make claims about a precompile they are mocking. An earlier build of the
 source contract is already live on Sepolia (it demonstrated the pipeline; see git history); the loan
