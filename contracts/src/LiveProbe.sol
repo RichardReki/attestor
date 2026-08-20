@@ -7,7 +7,7 @@ import {IBlockProver, IChainInfo} from "./interfaces/IAttestcoin.sol";
 /// tests encode. Those tests can only prove the governor behaves correctly *given* a prover verdict;
 /// this proves the verdicts themselves look the way we claim.
 ///
-/// The load-bearing one is catchability. `AttestedGovernor` wraps the call in `try/catch` so a forged
+/// The load-bearing one is catchability. `AttestedLoanBook` wraps the call in `try/catch` so a forged
 /// proof can be reported as its own named error rather than as an anonymous revert. That design
 /// only works if the failure is an ordinary EVM revert. Attestcoin's precompiles are Substrate
 /// runtime code, and a Frontier precompile can fail with an `ExitError` that is not a revert at

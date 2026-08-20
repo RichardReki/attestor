@@ -43,7 +43,7 @@ export class Attestcoin {
 
   /// Resolve the configured chainKey to the chain it actually denotes here.
   ///
-  /// Worth doing at startup even though `AttestedGovernor` re-checks it on every call, because the
+  /// Worth doing at startup even though `AttestedLoanBook` re-checks it on every call, because the
   /// failure this guards against is silent: `chainKey` is scoped to the environment, so the same
   /// constant names Sepolia on CC3 Testnet and Ethereum mainnet on CC3 Mainnet. An agent pointed at
   /// the wrong environment would otherwise run for hours, submitting proofs that are perfectly

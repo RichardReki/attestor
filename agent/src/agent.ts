@@ -1,5 +1,5 @@
-// The loop: watch Sepolia for authorisations, wait for them to become provable, decide whether to
-// carry them, and hand them to a contract that will check our work.
+// The loop: watch Sepolia for loan repayments, wait for them to become provable, decide whether to
+// post them, and hand each to a book on Creditcoin that will re-derive and check it.
 //
 // Read the ordering as a claim about trust. The agent decides *before* it proves, so a refusal
 // costs nothing; it proves *before* it submits, so a submission is never speculative; and the
@@ -11,12 +11,14 @@ import { load } from './config.js';
 import { Attestcoin, type Proof } from './attestcoin.js';
 import { judge, Ledger, DEFAULT_LIMITS, type Authorisation } from './policy.js';
 
-const SOURCE_ABI = ['event Authorised(address indexed actor, uint256 amount, uint256 deadline)'];
-const GOVERNOR_ABI = [
-  'function execute(uint64 chainKey, uint64 height, bytes encodedTransaction, ' +
+const SOURCE_ABI = [
+  'event Repaid(address indexed borrower, uint256 indexed loanId, uint256 amount, uint256 deadline)',
+];
+const LOAN_BOOK_ABI = [
+  'function post(uint64 chainKey, uint64 height, bytes encodedTransaction, ' +
     '(bytes32,(bytes32,bool)[]) merkleProof, (bytes32,bytes32[]) continuityProof)',
   'function consumed(bytes32) view returns (bool)',
-  'function credited(address) view returns (uint256)',
+  'function totalRepaid(address) view returns (uint256)',
 ];
 
 const now = (): number => Math.floor(Date.now() / 1000);
@@ -37,35 +39,36 @@ async function main(): Promise<void> {
   const signer = key ? new Wallet(key, target) : null;
   if (!signer) log('no PRIVATE_KEY set — running in observe-only mode, nothing will be submitted');
 
-  const governor = new Contract(cfg.governor, GOVERNOR_ABI, signer ?? target);
+  const book = new Contract(cfg.loanBook, LOAN_BOOK_ABI, signer ?? target);
   // Resolve the fragment up front rather than relying on the dynamic proxy: a typo in the ABI
   // string would otherwise surface as `undefined is not a function` at submission time, minutes
-  // after the authorisation that triggered it.
-  const execute = governor.getFunction('execute');
+  // after the repayment that triggered it.
+  const post = book.getFunction('post');
   const ledger = new Ledger();
 
-  const watched = new Contract(cfg.sourceAuthorization, SOURCE_ABI, source);
+  const watched = new Contract(cfg.loanRepayment, SOURCE_ABI, source);
 
-  // One ingestion path for both the historical scan and the live feed, so an authorisation is
-  // handled identically however it arrives, and never twice. A live subscription delivers events
-  // only from the moment it connects, so the same event can also surface in the backfill; the seen
-  // set keyed on tx-hash + log-index collapses that overlap.
+  // One ingestion path for both the historical scan and the live feed, so a repayment is handled
+  // identically however it arrives, and never twice. A live subscription delivers events only from
+  // the moment it connects, so the same event can also surface in the backfill; the seen set keyed
+  // on tx-hash + log-index collapses that overlap.
   const seen = new Set<string>();
   async function ingest(ev: EventLog): Promise<void> {
-    const [actor, amount, deadline] = ev.args as unknown as [string, bigint, bigint];
+    const [actor, loanId, amount, deadline] = ev.args as unknown as [string, bigint, bigint, bigint];
     const key = `${ev.transactionHash}:${ev.index}`;
     if (seen.has(key)) return;
     seen.add(key);
 
     const auth: Authorisation = {
       actor,
+      loanId,
       amount,
       deadline: Number(deadline),
       txHash: ev.transactionHash,
       sourceHeight: ev.blockNumber,
       observedAt: now(),
     };
-    log(`seen  ${auth.txHash.slice(0, 12)}…  actor=${actor.slice(0, 10)}…  amount=${amount}`);
+    log(`seen  ${auth.txHash.slice(0, 12)}…  borrower=${actor.slice(0, 10)}…  loan=${loanId}  amount=${amount}`);
     try {
       await handle(auth);
     } catch (e) {
@@ -74,16 +77,14 @@ async function main(): Promise<void> {
   }
 
   // Catch up on anything emitted while the agent was down BEFORE going live, so a restart is not a
-  // silent outage for whoever authorised in the gap.
+  // silent outage for whoever repaid in the gap.
   const head = await source.getBlockNumber();
   const from = Math.max(0, head - cfg.lookbackBlocks);
-  const past = (await watched.queryFilter('Authorised', from, head)) as EventLog[];
-  log(`watching ${cfg.sourceAuthorization} on chainId ${cfg.sourceChainId} — backfilling ${past.length} from block ${from}`);
+  const past = (await watched.queryFilter('Repaid', from, head)) as EventLog[];
+  log(`watching ${cfg.loanRepayment} on chainId ${cfg.sourceChainId} — backfilling ${past.length} from block ${from}`);
   for (const ev of past) await ingest(ev);
 
-  await watched.on('Authorised', (_actor, _amount, _deadline, payload: ContractEventPayload) =>
-    ingest(payload.log),
-  );
+  await watched.on('Repaid', (_b, _loan, _amt, _dl, payload: ContractEventPayload) => ingest(payload.log));
 
   async function handle(auth: Authorisation): Promise<void> {
     // Judge first. Most refusals are knowable now, and waiting eight minutes to refuse something we
@@ -124,7 +125,7 @@ async function main(): Promise<void> {
         return;
       }
 
-      const tx = await execute(
+      const tx = await post(
         proof.chainKey,
         proof.headerNumber,
         proof.txBytes,
@@ -133,7 +134,7 @@ async function main(): Promise<void> {
       );
       const receipt = await tx.wait();
       // The reservation stays — it is now the permanent record of a landed carry.
-      log(`done  ${auth.txHash.slice(0, 12)}…  -> CC3 ${receipt.hash}  credited ${auth.amount}`);
+      log(`done  ${auth.txHash.slice(0, 12)}…  -> CC3 ${receipt.hash}  posted ${auth.amount} to loan ${auth.loanId}`);
     } catch (e) {
       // A proof timeout, an RPC hiccup, a reverted submission — none of these landed, so the
       // reservation must not keep counting against the actor's limit. The outer handler logs.

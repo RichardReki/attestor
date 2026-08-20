@@ -122,9 +122,10 @@
     <p>It cannot fabricate the fact it acts on.</p>
   </div>
   <p class="sub">
-    Authorisations happen on Ethereum Sepolia. An off-chain agent decides which ones to carry to
-    Creditcoin. A contract there re-derives every one from the proven transaction, so the agent's
-    judgement is never the last word — and neither is ours.
+    Loan repayments happen on Ethereum Sepolia, where the stablecoin lives. An off-chain agent posts
+    them to a credit history on Creditcoin — but the loan book there re-derives every repayment from
+    the proven transaction, so the agent cannot write a repayment that did not happen, and neither
+    can we.
   </p>
   <p class="sub" style="color:var(--haze)">
     Honest status: the source contract is live on Sepolia and the proof pipeline is verified against
@@ -161,7 +162,7 @@
     <h2>What a proof settles</h2>
     <p class="note">
       Attestcoin answers one question, precisely. Reading it as an answer to a larger one is where a
-      consumer contract gets exploited, so the governor treats everything on the right as its own job.
+      consumer contract gets exploited, so the loan book treats everything on the right as its own job.
     </p>
     <div class="split">
       <div>
@@ -183,7 +184,7 @@
   </section>
 
   <section>
-    <h2>What the governor refuses</h2>
+    <h2>What the loan book refuses</h2>
     <p class="note">
       Every row is a test. Refusals are shown in the same colour as everything else on this page,
       because in this system a refusal is the correct outcome — the only alarming result would be an
@@ -247,15 +248,15 @@ const SEPOLIA_BLOCK_SECONDS = 12;
 const ATTACKS = [
   ['Tampered transaction bytes',            'precompile', 'Merkle proof validation failed'],
   ['Genuine proof, replayed under another chainKey', 'precompile', 'Continuity proof does not match attestation or checkpoint'],
-  ['Valid proof from the wrong source chain', 'governor', 'WrongChain'],
-  ['Proof for a chainKey this network does not support', 'governor', 'UnsupportedChainKey'],
-  ['Proven transaction that reverted on Sepolia', 'governor', 'SourceReverted'],
-  ['Right function, impostor contract',      'governor', 'WrongSource'],
-  ['Right contract, different function',      'governor', 'WrongSelector'],
-  ['Authorising an address that did not sign', 'governor', 'Unauthorised'],
-  ['Authorisation used after its deadline',   'governor', 'Stale'],
-  ['Authorisation granted for ever',          'governor', 'Overlong'],
-  ['The same proof submitted twice',          'governor', 'AlreadyConsumed'],
+  ['Valid proof from the wrong source chain', 'loan book', 'WrongChain'],
+  ['Proof for a chainKey this network does not support', 'loan book', 'UnsupportedChainKey'],
+  ['A repayment whose transfer reverted on Sepolia', 'loan book', 'SourceReverted'],
+  ['A call to an impostor loan contract',    'loan book', 'WrongSource'],
+  ['A different function on the real loan contract', 'loan book', 'WrongSelector'],
+  ['Crediting a borrower who did not sign the repayment', 'loan book', 'Unauthorised'],
+  ['A repayment posted after its deadline',   'loan book', 'Stale'],
+  ['A repayment postable for ever',           'loan book', 'Overlong'],
+  ['The same repayment posted twice',         'loan book', 'AlreadyPosted'],
   ['Contract creation, which has no callee',  'decoder',  'ContractCreation'],
 ];
 

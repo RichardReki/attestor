@@ -3,7 +3,7 @@
 // The agent watches authorisations appear on Sepolia and chooses which ones to carry to Creditcoin.
 // That is the whole of its power. It cannot invent an authorisation, raise an amount, extend a
 // deadline, or act for an actor who did not sign — not because we ask it not to, but because
-// `AttestedGovernor` re-derives every one of those from the proven transaction and would reject a
+// `AttestedLoanBook` re-derives every one of those from the proven transaction and would reject a
 // forgery from us exactly as it would from anyone else.
 //
 // So the interesting question is not "can the agent be trusted", it is "what is left for the agent
@@ -13,12 +13,13 @@
 // to *forward*, never a decision to *grant*.
 
 export interface Authorisation {
-  actor: string;
+  actor: string; // the source-chain sender whose fact this is — the borrower, in the loan app
   amount: bigint;
   deadline: number; // unix seconds, chosen by the actor on the source chain
   txHash: string;
   sourceHeight: number;
   observedAt: number; // unix seconds, when the agent saw it
+  loanId?: bigint; // carried for logging; the risk gate is deliberately loan-agnostic
 }
 
 export interface Verdict {

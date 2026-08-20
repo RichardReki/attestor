@@ -9,8 +9,8 @@ export interface Config {
   sourceChainId: number;
   /// Creditcoin's local handle for that chain — an input to be resolved, not a fact to be trusted.
   chainKey: number;
-  sourceAuthorization: string;
-  governor: string;
+  loanRepayment: string;
+  loanBook: string;
   /// How far back to scan for authorisations at startup, so ones emitted while the agent was down
   /// are not lost. A live subscription only delivers events from the moment it connects, so without
   /// this a restart silently drops anything emitted in the gap. ~7200 Sepolia blocks ≈ one day.
@@ -30,8 +30,8 @@ export function load(): Config {
     proverUrl: process.env.PROVER_URL ?? 'https://prover.cc3-testnet.creditcoin.network',
     sourceChainId: Number(process.env.SOURCE_CHAIN_ID ?? 11155111),
     chainKey: Number(process.env.CHAIN_KEY ?? 1),
-    sourceAuthorization: need('SOURCE_AUTHORIZATION'),
-    governor: need('GOVERNOR'),
+    loanRepayment: need('LOAN_REPAYMENT'),
+    loanBook: need('LOAN_BOOK'),
     lookbackBlocks: Number(process.env.LOOKBACK_BLOCKS ?? 7200),
   };
 }

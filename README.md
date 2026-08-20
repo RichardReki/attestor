@@ -1,7 +1,13 @@
-# Attested Risk Governor
+# Attestor — a cross-chain loan book you cannot lie to
 
-An autonomous risk agent that can propose cross-chain actions, but **cannot fabricate the
-source-chain facts it acts on**.
+An autonomous agent watches loan repayments happen on Ethereum and posts them to a credit history on
+Creditcoin — but it **cannot fabricate a repayment that did not happen**, because the on-chain book
+re-derives every one from an Attestcoin proof of the source transaction and refuses anything that
+does not check out.
+
+That is Creditcoin's own thesis made literal: the money moves where the money lives (Ethereum), and
+the *record of it* lives where a record can be trusted (Creditcoin). The agent proposes; the chain
+disposes; neither the agent nor we can write a false entry into someone's history.
 
 Built for **BUIDL CTC 2026 Fall** (2026-08-13 → 2026-09-06). Every line of this repository was
 written inside the contest window; see `git log` for the first commit. Prior work of ours
@@ -10,11 +16,13 @@ rule disposes — and nothing from it is reused: different chain, different prot
 
 ## Status
 
-The source half is deployed and the security core is done. 41 tests pass — 21 on the contracts,
-20 on the agent — and six claims about the precompiles are re-checked against the live CC3 runtime
-on every run (via `tools/live-check.mjs`), because mocked tests cannot make claims about a precompile
-they are mocking. What remains is the first end-to-end execution, which is waiting on CC3 testnet
-funding — the governor is not yet deployed.
+The security core is done and the proof pipeline is verified end to end against the live
+precompiles. 41 tests pass — 21 on the contracts, 20 on the agent — and six claims about the
+precompiles are re-checked against the live CC3 runtime on every run (via `tools/live-check.mjs`),
+because mocked tests cannot make claims about a precompile they are mocking. An earlier build of the
+source contract is already live on Sepolia (it demonstrated the pipeline; see git history); the loan
+contracts here deploy to Sepolia in one command, and the book on Creditcoin is waiting on CC3
+testnet funds for its first posting.
 
 Reproduce the whole proof pipeline yourself, with no key and no gas:
 
@@ -34,11 +42,11 @@ that treats "attested" as "happened the way I wanted" is exploitable. Ours check
 | --- | --- |
 | `status == 0x1` | inclusion ≠ success; a reverted tx is still includable |
 | `chainKey` | see the environment-scoping trap below |
-| source contract address | otherwise any contract's event can impersonate ours |
+| source contract address | otherwise any contract's call is posted as a repayment to this lender |
 | function selector + decoded args | otherwise a different call on the right contract passes |
-| `msg.sender` of the source tx | authorisation belongs to the source actor, not the relayer |
-| freshness / deadline | attested facts stay provable forever; authority should not |
-| tx-hash consumption | otherwise one authorisation replays without limit |
+| `msg.sender` of the source tx | the credit belongs to the borrower who paid, not the relayer |
+| freshness / deadline | an attested repayment is provable forever; the right to post it should not be |
+| tx-hash consumption | otherwise one repayment is posted again and again, inflating the history |
 
 ## Seven things we found that the documentation does not say
 
@@ -114,8 +122,12 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 
 | | |
 | --- | --- |
-| `SourceAuthorization` (Sepolia) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://sepolia.etherscan.io/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
-| `AttestedGovernor` (CC3 Testnet) | not yet deployed |
+| `MockUSD` + `LoanRepayment` (Sepolia) | deploy in one command — `forge script script/Deploy.s.sol:DeploySource --rpc-url sepolia --broadcast` |
+| `AttestedLoanBook` (CC3 Testnet) | pending — waiting on CC3 testnet funds |
+
+An earlier generic build of the source contract is live at
+[`0xe31906a2…`](https://sepolia.etherscan.io/address/0xe31906a2A7162b865b672a3a51B75813564db5e9); it
+proved the pipeline before the product settled on the loan model above.
 
 ## Environment
 
