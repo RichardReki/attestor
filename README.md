@@ -10,16 +10,17 @@ rule disposes — and nothing from it is reused: different chain, different prot
 
 ## Status
 
-The source half is deployed and the security core is done. 34 tests pass — 21 on the contracts,
-13 on the agent — and six claims about the precompiles are re-checked against the live CC3 runtime
-on every run, because mocked tests cannot make claims about a precompile they are mocking. What
-remains is the first end-to-end execution, which is waiting on CC3 testnet funding.
+The source half is deployed and the security core is done. 41 tests pass — 21 on the contracts,
+20 on the agent — and six claims about the precompiles are re-checked against the live CC3 runtime
+on every run (via `tools/live-check.mjs`), because mocked tests cannot make claims about a precompile
+they are mocking. What remains is the first end-to-end execution, which is waiting on CC3 testnet
+funding — the governor is not yet deployed.
 
 Reproduce the whole proof pipeline yourself, with no key and no gas:
 
 ```bash
 cd spike && npm install && node spike.mjs      # Sepolia tx -> proof -> verified on CC3
-cd contracts && forge test                     # 21 tests, including 12 rejected attacks
+cd contracts && forge test                     # 21 forge tests; the attack suite rejects 13 forgeries
 node tools/live-check.mjs                      # the precompile assumptions, against the real chain
 ```
 
@@ -59,10 +60,12 @@ be handled as a revert, which changes how a contract must be structured — and 
 between a rejection your users can read and an opaque one.
 
 **2. End-to-end latency is about 8 minutes, and it is a product constraint, not an implementation
-detail.** The prover enforces a **32-block reorg-protection window** (visible only in its
-`BlockNotOnSourceChain` error text), and we measured an attestation lag of ~39 Sepolia blocks. An
-agent built on this cannot act on fresher source facts than that. We state the bound rather than
-implying real-time.
+detail.** A source fact is not provable until it is attested, which we measured at ~39 Sepolia
+blocks behind the head (~8 minutes). The last **32 of those** are a reorg-protection window the
+prover enforces explicitly — a number that appears only in the text of its `BlockNotOnSourceChain`
+error, in no documentation. The figures are not additive: the reorg window is the tail of the lag,
+not extra on top of it. An agent built on this cannot act on fresher source facts than that, so we
+state the bound rather than implying real-time.
 
 **3. `chainKey` is environment-scoped, not a global chain id.**
 
@@ -82,10 +85,10 @@ your proof. ChainInfo goes the other way: on-chain it is snake_case (`get_chain_
 `is_height_attested`), camelCase only in the SDK.
 
 **5. The proof envelope is `(uint8 txType, bytes[] chunks)`, not `bytes[]` — and the SDK documents
-the wrong one.** `encoding/abi/v1` says, verbatim, "To decode it: Type: `bytes[]`". Three lines
-below that comment its own implementation encodes `['uint8', 'bytes[]']`. A consumer written from
-the documentation cannot decode a single real transaction. We found it only by dumping the bytes a
-live proof actually contained, and `test_envelopeIsNotBareBytesArray` now pins it.
+the wrong one.** `encoding/abi/v1` says, verbatim, "To decode it: Type: `bytes[]`", while the
+`abiEncode` function in that same file encodes `['uint8', 'bytes[]']`. A consumer written from the
+documentation cannot decode a single real transaction. We found it only by dumping the bytes a live
+proof actually contained, and `test_envelopeIsNotBareBytesArray` now pins it.
 
 Inside the envelope, the receipt is the **last** chunk and the chunk count varies by transaction
 type — three for legacy/access-list/EIP-1559, four for blob. Reading the receipt as `chunks[2]`

@@ -43,7 +43,10 @@ contract LiveProbe {
         // does not exist here.
         bool validVerifies = PROVER.verify(chainKey, height, txBytes, mp, cp);
 
-        bytes memory tampered = txBytes;
+        // bytes.concat copies; a plain `= txBytes` would alias the same memory, and mutating the
+        // copy would corrupt txBytes for the wrong-key check below — conflating two distinct attacks
+        // and mislabelling which error each produces.
+        bytes memory tampered = bytes.concat(txBytes);
         tampered[tampered.length - 1] = tampered[tampered.length - 1] ^ bytes1(0x01);
         (bool tamperedCaught, string memory tamperedReason) = _reject(chainKey, height, tampered, mp, cp);
 

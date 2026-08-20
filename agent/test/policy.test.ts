@@ -103,3 +103,62 @@ describe('the shape of the agent’s authority', () => {
     }
   });
 });
+
+describe('reservations close the burst bypass', () => {
+  it('a reservation counts immediately, before the carry lands', () => {
+    // This is the fix for the critical bug: under a burst, handlers reserve at admission time so
+    // concurrent ones see the volume. Simulate the count limit filling with reservations only.
+    const l = new Ledger();
+    for (let i = 0; i < DEFAULT_LIMITS.maxCountPerActorInWindow; i++) {
+      l.reserve(auth().actor, 1n, NOW);
+    }
+    expect(judge(auth(), l, 40, NOW).forward).toBe(false);
+  });
+
+  it('exposure counts reservations, so a burst cannot exceed the window total', () => {
+    const l = new Ledger();
+    l.reserve(auth().actor, DEFAULT_LIMITS.maxPerActorInWindow, NOW);
+    expect(judge(auth({ amount: 1n }), l, 40, NOW).forward).toBe(false);
+  });
+
+  it('a released reservation stops counting, so a failed carry does not starve the actor', () => {
+    const l = new Ledger();
+    const ids = Array.from({ length: DEFAULT_LIMITS.maxCountPerActorInWindow }, () =>
+      l.reserve(auth().actor, 1n, NOW),
+    );
+    expect(judge(auth(), l, 40, NOW).forward).toBe(false); // at the limit
+    l.release(ids[0]!);
+    expect(judge(auth(), l, 40, NOW).forward).toBe(true); // room again
+  });
+
+  it('record is a reservation that is never released', () => {
+    const l = new Ledger();
+    const id = l.record(auth().actor, 5n, NOW);
+    expect(typeof id).toBe('number');
+    expect(l.within(auth().actor, NOW, DEFAULT_LIMITS.windowSeconds).length).toBe(1);
+  });
+});
+
+describe('the second-pass recheck', () => {
+  it('skips velocity, so an already-reserved authorisation is not rejected by its own reservation', () => {
+    const l = new Ledger();
+    // Fill well past the limit — a full judge would refuse.
+    for (let i = 0; i < DEFAULT_LIMITS.maxCountPerActorInWindow + 3; i++) l.reserve(auth().actor, 9_999n, NOW);
+    expect(judge(auth(), l, 40, NOW).forward).toBe(false);
+    expect(judge(auth(), l, 40, NOW, DEFAULT_LIMITS, { recheckOnly: true }).forward).toBe(true);
+  });
+
+  it('still catches a deadline that passed during the wait', () => {
+    const v = judge(auth({ deadline: NOW - 1 }), new Ledger(), 40, NOW, DEFAULT_LIMITS, { recheckOnly: true });
+    expect(v.forward).toBe(false);
+    expect(v.reason).toMatch(/expired/);
+  });
+
+  it('still holds when attestation fell behind during the wait', () => {
+    const v = judge(auth(), new Ledger(), DEFAULT_LIMITS.maxLagBlocks + 1, NOW, DEFAULT_LIMITS, {
+      recheckOnly: true,
+    });
+    expect(v.forward).toBe(false);
+    expect(v.reason).toMatch(/behind/);
+  });
+});

@@ -11,9 +11,10 @@ export interface Config {
   chainKey: number;
   sourceAuthorization: string;
   governor: string;
-  /// Blocks to leave between the source head and anything we try to prove. The prover refuses
-  /// inside a 32-block reorg-protection window; a little more than that saves a doomed round trip.
-  confirmations: number;
+  /// How far back to scan for authorisations at startup, so ones emitted while the agent was down
+  /// are not lost. A live subscription only delivers events from the moment it connects, so without
+  /// this a restart silently drops anything emitted in the gap. ~7200 Sepolia blocks ≈ one day.
+  lookbackBlocks: number;
 }
 
 const need = (k: string): string => {
@@ -31,6 +32,6 @@ export function load(): Config {
     chainKey: Number(process.env.CHAIN_KEY ?? 1),
     sourceAuthorization: need('SOURCE_AUTHORIZATION'),
     governor: need('GOVERNOR'),
-    confirmations: Number(process.env.CONFIRMATIONS ?? 40),
+    lookbackBlocks: Number(process.env.LOOKBACK_BLOCKS ?? 7200),
   };
 }

@@ -126,6 +126,11 @@
     Creditcoin. A contract there re-derives every one from the proven transaction, so the agent's
     judgement is never the last word — and neither is ours.
   </p>
+  <p class="sub" style="color:var(--haze)">
+    Honest status: the source contract is live on Sepolia and the proof pipeline is verified against
+    the real precompiles (below). The consumer contract that acts on Creditcoin is written and
+    tested but not yet deployed — the first on-chain execution is waiting on CC3 testnet funds.
+  </p>
 
   <!-- The signature element. It exists because the 32-block reorg-protection window appears in one
        error string and in no documentation; once you know it is there, the gap is the honest way to
@@ -241,7 +246,7 @@ const SEPOLIA_BLOCK_SECONDS = 12;
 // Rows attributed to the precompile were observed against the live runtime, not a mock.
 const ATTACKS = [
   ['Tampered transaction bytes',            'precompile', 'Merkle proof validation failed'],
-  ['Genuine proof, replayed under another chainKey', 'precompile', 'Merkle proof validation failed'],
+  ['Genuine proof, replayed under another chainKey', 'precompile', 'Continuity proof does not match attestation or checkpoint'],
   ['Valid proof from the wrong source chain', 'governor', 'WrongChain'],
   ['Proof for a chainKey this network does not support', 'governor', 'UnsupportedChainKey'],
   ['Proven transaction that reverted on Sepolia', 'governor', 'SourceReverted'],

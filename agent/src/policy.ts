@@ -54,27 +54,65 @@ export const DEFAULT_LIMITS: PolicyLimits = {
 };
 
 interface Forwarded {
+  id: number;
   actor: string;
   amount: bigint;
   at: number;
 }
 
-/// Tracks what the agent has already carried, so velocity and exposure can be judged.
+/// Tracks what the agent has carried — or is *committed to carrying* — so velocity and exposure can
+/// be judged.
 ///
-/// Held in memory on purpose. Restarting the agent forgets its history, which is the safe
-/// direction: it can only forget that it *has* forwarded, never that it has not, so a restart
-/// makes the agent more permissive about velocity and never more permissive about authenticity —
-/// and the on-chain replay guard, which is the one that actually matters, is not in memory at all.
+/// The word "committed" is the whole point, and it is why `reserve` exists alongside `record`.
+/// Carrying an authorisation takes about eight minutes (attestation, then the proof round trip),
+/// and the event handler is fully re-entrant. If the ledger only learned about an authorisation
+/// *after* it landed, then a burst of authorisations from one actor would all be judged against an
+/// empty ledger — every one would see zero prior volume, and the per-actor limits would enforce
+/// nothing at all under exactly the load they exist for. So the moment an authorisation clears the
+/// admission check we `reserve` it: concurrent handlers see the reservation immediately, and it is
+/// rolled back with `release` if the carry later fails. `record` is just a reservation that will
+/// never be released.
+///
+/// Still in memory on purpose. A restart forgets reservations, which is the safe direction — it can
+/// only forget that the agent *has* forwarded, never that it has not, so a restart is more
+/// permissive about velocity and never about authenticity. The replay guard that actually protects
+/// funds is on-chain, not here.
 export class Ledger {
-  private readonly rows: Forwarded[] = [];
+  private rows: Forwarded[] = [];
+  private seq = 0;
 
-  record(actor: string, amount: bigint, at: number): void {
-    this.rows.push({ actor: actor.toLowerCase(), amount, at });
+  /// @param retentionSeconds rows older than this are dropped on write; must be >= the largest
+  ///   window ever queried, or a live entry could be pruned. Defaults to the policy window.
+  constructor(private readonly retentionSeconds: number = DEFAULT_LIMITS.windowSeconds) {}
+
+  /// Count an authorisation the agent has decided to carry but has not yet landed. Returns an id to
+  /// `release` if the carry fails.
+  reserve(actor: string, amount: bigint, at: number): number {
+    this.prune(at);
+    const id = ++this.seq;
+    this.rows.push({ id, actor: actor.toLowerCase(), amount, at });
+    return id;
+  }
+
+  /// Undo a reservation whose carry did not complete.
+  release(id: number): void {
+    this.rows = this.rows.filter((r) => r.id !== id);
+  }
+
+  /// A reservation that is never released — the agent has landed this one for good.
+  record(actor: string, amount: bigint, at: number): number {
+    return this.reserve(actor, amount, at);
   }
 
   within(actor: string, now: number, windowSeconds: number): Forwarded[] {
     const key = actor.toLowerCase();
     return this.rows.filter((r) => r.actor === key && now - r.at <= windowSeconds);
+  }
+
+  /// Expired rows are unreachable by `within` (it filters on the window), so dropping anything older
+  /// than the retention is safe and keeps the array from growing without bound over a long run.
+  private prune(now: number): void {
+    this.rows = this.rows.filter((r) => now - r.at <= this.retentionSeconds);
   }
 }
 
@@ -83,12 +121,19 @@ export class Ledger {
 /// Every rejection names the rule that fired. A risk gate whose refusals are indistinguishable is
 /// one nobody can operate: the difference between "you are over your hourly limit" and "the
 /// attestation pipeline is behind" is the difference between waiting and paging someone.
+///
+/// `recheckOnly` re-runs an authorisation that was ALREADY admitted and reserved, after the ~8
+/// minute wait, to catch what can have changed in the meantime — the deadline may have passed, the
+/// attestation may have fallen behind. It deliberately skips the per-actor velocity and exposure
+/// checks, because this authorisation's own reservation is now in the ledger and re-counting it
+/// against itself would reject every admitted authorisation on the second pass.
 export function judge(
   auth: Authorisation,
   ledger: Ledger,
   lagBlocks: number,
   now: number,
   limits: PolicyLimits = DEFAULT_LIMITS,
+  opts: { recheckOnly?: boolean } = {},
 ): Verdict {
   if (lagBlocks > limits.maxLagBlocks) {
     return {
@@ -116,6 +161,10 @@ export function judge(
 
   if (auth.amount > limits.maxAmount) {
     return { forward: false, reason: `amount ${auth.amount} exceeds the per-authorisation cap ${limits.maxAmount}` };
+  }
+
+  if (opts.recheckOnly) {
+    return { forward: true, reason: 'still within the time-sensitive limits; the chain decides' };
   }
 
   const recent = ledger.within(auth.actor, now, limits.windowSeconds);

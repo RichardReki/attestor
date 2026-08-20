@@ -84,16 +84,26 @@ export class Attestcoin {
     opts: { pollMs?: number; timeoutMs?: number; onWait?: (lag: Lag) => void } = {},
   ): Promise<Proof> {
     const pollMs = opts.pollMs ?? 20_000;
-    const timeoutMs = opts.timeoutMs ?? 20 * 60_000;
-    const deadline = Date.now() + timeoutMs;
+    // Size the timeout to the actual distance to cover, not a fixed number. A fixed 20 minutes is
+    // shorter than the wait the lag policy is willing to admit (maxLagBlocks of 200 is ~40 minutes
+    // of Sepolia), so a legitimately-behind-but-acceptable attestation would time out and the
+    // authorisation would be dropped. Sepolia is ~12s/block; double it for headroom, add a floor.
+    let deadline = Date.now() + (opts.timeoutMs ?? 20 * 60_000);
+    let sized = false;
 
     for (;;) {
       const { height: attested } = await this.info.getLatestAttestedHeightAndHash(this.cfg.chainKey);
       if (Number(attested) >= height) break;
+      if (!sized) {
+        const gapBlocks = height - Number(attested);
+        const needMs = gapBlocks * 12_000 * 2 + 5 * 60_000;
+        deadline = Date.now() + Math.max(opts.timeoutMs ?? 0, needMs);
+        sized = true;
+      }
       if (Date.now() > deadline) {
         throw new Error(
-          `block ${height} was still unattested after ${Math.round(timeoutMs / 60_000)} minutes ` +
-            `(attestation is at ${attested}). The source chain or the attestation pipeline is behind.`,
+          `block ${height} was still unattested after the sized wait (attestation is at ${attested}). ` +
+            `The source chain or the attestation pipeline is behind — this is retriable once it recovers.`,
         );
       }
       opts.onWait?.(await this.lag());
