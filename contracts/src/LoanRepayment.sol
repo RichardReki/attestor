@@ -25,6 +25,8 @@ contract LoanRepayment {
 
     error NotBorrower(address borrower, address sender);
     error DeadlineInPast(uint256 deadline);
+    error ZeroAmount();
+    error SelfPayment();
     error TransferFailed();
 
     constructor(address usd_, address lender_) {
@@ -33,10 +35,20 @@ contract LoanRepayment {
     }
 
     /// Repay `amount` toward `loanId`. `deadline` bounds how long the resulting proof may still be
-    /// acted on by the loan book — an attested fact is provable forever, so authority to post it
-    /// must expire.
+    /// posted by the loan book — an attested fact is provable forever, so the right to post it must
+    /// expire.
+    ///
+    /// The two guards below exist because the whole product is a credit history, and a history is
+    /// only worth anything if an entry means real money moved. A zero `amount` would clear the
+    /// transfer (moving nothing) and still emit `Repaid`, letting anyone manufacture repayment
+    /// events for gas alone. And if the borrower were also the lender, `transferFrom(self, self)`
+    /// nets to nothing while recording the full amount — a way to fabricate one's own good history.
+    /// Both are refused here, and the book on Creditcoin refuses a zero amount again as defence in
+    /// depth, so neither check is load-bearing alone.
     function repay(address borrower, uint256 loanId, uint256 amount, uint256 deadline) external {
         if (borrower != msg.sender) revert NotBorrower(borrower, msg.sender);
+        if (msg.sender == lender) revert SelfPayment();
+        if (amount == 0) revert ZeroAmount();
         if (deadline <= block.timestamp) revert DeadlineInPast(deadline);
         if (!usd.transferFrom(msg.sender, lender, amount)) revert TransferFailed();
         emit Repaid(borrower, loanId, amount, deadline);

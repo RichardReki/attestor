@@ -174,6 +174,14 @@ contract AttacksTest is Test {
         book.post(SEPOLIA_KEY, HEIGHT, txb, mp, cp);
     }
 
+    /// Defence in depth: even a genuinely-proven repay of zero must not be posted, because the book
+    /// increments repaymentCount per posting and a free zero would inflate a borrower's activity.
+    function test_zeroAmountRepayment_isRejected() public {
+        bytes memory txb = _repayTx(BORROWER, LOAN, 0, block.timestamp + 1 hours);
+        vm.expectRevert(AttestedLoanBook.ZeroAmount.selector);
+        book.post(SEPOLIA_KEY, HEIGHT, txb, mp, cp);
+    }
+
     // --- attacks on time and repetition ----------------------------------------------------
 
     /// An attested repayment stays provable forever. The right to post it must not.

@@ -68,6 +68,7 @@ contract AttestedLoanBook {
     error Stale(uint256 deadline);
     error Overlong(uint256 deadline);
     error AlreadyPosted(bytes32 sourceTxKey);
+    error ZeroAmount();
 
     constructor(uint64 expectedChainId_, address expectedSource_, bytes4 expectedSelector_, uint256 maxAge_) {
         expectedChainId = expectedChainId_;
@@ -151,6 +152,10 @@ contract AttestedLoanBook {
         (borrower, loanId, amount, deadline) =
             abi.decode(AttestedTx.args(c), (address, uint256, uint256, uint256));
         if (borrower != c.from) revert Unauthorised(borrower);
+        // Defence in depth: repaymentCount is incremented per posting, so a zero-amount repayment
+        // would inflate a borrower's apparent activity for free. The source contract already refuses
+        // this; the book refuses it again so it does not depend on the source to have done so.
+        if (amount == 0) revert ZeroAmount();
         if (block.timestamp > deadline) revert Stale(deadline);
         if (deadline > block.timestamp + maxAge) revert Overlong(deadline);
     }

@@ -22,10 +22,14 @@ contract DeploySource is Script {
         // Deploy the demo stablecoin and the loan contract; the deployer is the lender who receives
         // repayments. On mainnet this would be a real USDC address and a real lender.
         MockUSD usd = new MockUSD();
-        LoanRepayment loan = new LoanRepayment(address(usd), vm.addr(vm.envUint("PRIVATE_KEY")));
+        // The lender must differ from the borrower — self-payment is refused, since transferring to
+        // yourself moves nothing while recording a repayment. LENDER overrides the demo default.
+        address lender = vm.envOr("LENDER", address(0x000000000000000000000000000000000000dEaD));
+        LoanRepayment loan = new LoanRepayment(address(usd), lender);
         vm.stopBroadcast();
         console2.log("MockUSD (Sepolia):       ", address(usd));
         console2.log("LoanRepayment (Sepolia): ", address(loan));
+        console2.log("  lender: ", lender);
         console2.log("  put LoanRepayment in LOAN_REPAYMENT before deploying the book");
     }
 }

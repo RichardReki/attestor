@@ -28,7 +28,7 @@ Reproduce the whole proof pipeline yourself, with no key and no gas:
 
 ```bash
 cd spike && npm install && node spike.mjs      # Sepolia tx -> proof -> verified on CC3
-cd contracts && forge test                     # 21 forge tests; the attack suite rejects 13 forgeries
+cd contracts && forge test                     # 28 forge tests; 22 of them reject a forged or invalid input
 node tools/live-check.mjs                      # the precompile assumptions, against the real chain
 ```
 
