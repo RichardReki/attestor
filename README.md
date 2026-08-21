@@ -126,7 +126,7 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 | --- | --- |
 | `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) |
 | `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
-| `AttestedLoanBook` (CC3 Testnet) | pending — waiting on CC3 testnet funds |
+| `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
 
 **Demonstrated source fact** (the exact transaction the agent will prove once the book is funded):
 a real repayment of 250 mUSD, borrower → lender, `status 1`, emitting
