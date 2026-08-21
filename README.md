@@ -137,8 +137,10 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 A real Ethereum repayment is now an unforgeable entry in a Creditcoin credit history. Reproduce the
 whole loop with `node tools/post-once.mjs`.
 
-Deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. An earlier generic build of the source
-contract (`0xe31906a2…`) proved the pipeline before the product settled on the loan model above.
+All deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. (The CC3 book and an earlier,
+now-superseded Sepolia contract share the address string `0xe31906a2…` only because both were the
+first deployment from this account on their respective chains — they are different contracts on
+different chains.)
 
 ## Environment
 

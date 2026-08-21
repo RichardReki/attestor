@@ -125,7 +125,7 @@ On-chain, deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`:
 | --- | --- |
 | `MockUSD` (Sepolia) | `0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef` |
 | `LoanRepayment` (Sepolia) | `0x08F8b91A9d447C309F1788002BF51BF0BEE69021` (lender `0x…dEaD`) |
-| **A real repayment** — 250 mUSD moved, `status 1`, `Repaid` emitted | tx `0x00a39800110d523b1ec737139b37dc58784fe46e59977ca7d3175324da13267f` |
+| **A real repayment** — 250 mUSD moved, `status 1`, `Repaid` emitted | tx `0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4` |
 | BlockProver precompile | `0x0000000000000000000000000000000000000FD2` |
 | ChainInfo precompile | `0x0000000000000000000000000000000000000fD3` |
 

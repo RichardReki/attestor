@@ -81,7 +81,7 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
   2026-08-13 → 09-06 window; prior work (RotorVault, on Flare) is named as the pattern's origin and
   nothing from it is reused (different chain, protocol, code).
 - **Deployed on a testnet:** yes — `MockUSD` `0xCFd5E8e6…` and `LoanRepayment` `0x08F8b91A…` on
-  Ethereum Sepolia, with a real 250-mUSD repayment proven on-chain (tx `0x00a39800…`).
+  Ethereum Sepolia, with a real 250-mUSD repayment proven on-chain (tx `0x49592b0c…`).
   `AttestedLoanBook` on Creditcoin CC3 Testnet: `0xe31906a2A7162b865b672a3a51B75813564db5e9`.
 - **Attestcoin as a core feature:** yes — every write to the credit history is gated on a
   BlockProver-precompile verification; the pipeline is verified end-to-end against the live
