@@ -142,8 +142,8 @@
       </div>
       <div class="kv">
         <div><span class="k">MockUSD &nbsp;&nbsp;</span> 0xCFd5E8e6…d0ef (Sepolia)</div>
-        <div><span class="k">LoanRepay &nbsp;</span> 0x08F8b91A…9021 (Sepolia)</div>
-        <div><span class="k">real repay </span> 0x00a39800… (250 mUSD moved)</div>
+        <div><span class="k">LoanBook &nbsp;&nbsp;</span> 0xe31906a2…5e9 (CC3) · LoanRepay 0x08F8b91A… (Sep)</div>
+        <div><span class="k">repay (Sep)</span> 0x49592b0c… &nbsp; <span class="k">post (CC3)</span> 0x0f3d4ca0…</div>
         <div><span class="k">BlockProver</span> 0x…0FD2 &nbsp; <span class="k">ChainInfo</span> 0x…0FD3</div>
       </div>
     </div>
@@ -152,12 +152,13 @@
   <section>
     <h2>Honest status &amp; roadmap</h2>
     <div class="status">
-      Security core complete; proof pipeline verified end-to-end against the live precompiles. Source
-      half deployed on Sepolia with a real repayment proven. <b>The loan book on CC3 is written and
-      tested but not yet deployed — the first on-chain posting is waiting on testnet funds.</b> The
-      demonstrated repayment is the exact transaction it will post; nothing is mocked.
+      <b>The full loop is live, on-chain both sides.</b> A borrower repaid 250 mUSD on Sepolia
+      (<span class="mono">0x49592b0c…</span>); the agent proved it and posted it to the loan book on
+      Creditcoin (<span class="mono">0x0f3d4ca0…</span>), which now reads
+      <span class="mono">totalRepaid 250000000</span>, <span class="mono">repaymentCount 1</span> for
+      the borrower. Nothing is mocked — reproduce with <code>node tools/post-once.mjs</code>.
     </div>
-    <p style="margin-top:8px"><b class="haze">Next:</b> deploy the book and run the first live posting · multi-loan credit scoring read by a Creditcoin lending contract · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
+    <p style="margin-top:8px"><b class="haze">Next:</b> the agent running continuously as a service · multi-loan credit scoring read by a Creditcoin lending contract · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
   </section>
 
   <footer>

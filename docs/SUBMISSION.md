@@ -92,7 +92,8 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
 - **Network:** Ethereum Sepolia (source) → Creditcoin CC3 Testnet (target, chainId 102031).
 - **What is real vs pending, stated plainly:** the security core is complete, the proof pipeline is
   verified end-to-end against the live precompiles, the source half is deployed with a real
-  repayment proven. The loan book's first on-chain posting is the one thing that awaited CC3 testnet
-  funds. Nothing in the flow is mocked.
+  repayment proven, and the loan book on CC3 has recorded it end to end (Sepolia repay
+  `0x49592b0c…` -> CC3 post `0x0f3d4ca0…`, book now reads totalRepaid 250000000 / repaymentCount 1).
+  Nothing in the flow is mocked.
 - **Ecosystem contribution:** seven undocumented Attestcoin behaviours found and documented, two of
   which make a consumer written from the current docs fail outright — reported for the team's benefit.

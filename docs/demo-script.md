@@ -1,8 +1,8 @@
 # Attestor — demo video script (~2:40)
 
 The one idea to leave a judge with: **an agent can propose anything, but it cannot fabricate the
-fact it acts on.** Everything below is real and on-chain except the final CC3 posting, which is
-recorded once the book is funded (see the note at 2:10). Nothing is mocked.
+fact it acts on.** Every step below is real and on-chain — the repayment on Sepolia and the posting
+on Creditcoin both have transaction hashes. Nothing is mocked.
 
 Recorded assets: a terminal, the Sepolia explorer, the CC3 explorer, and `web/index.html`.
 
@@ -20,7 +20,7 @@ line under it.
 ## 0:18 — The real repayment (Sepolia explorer)
 
 Open the repay transaction:
-`https://sepolia.etherscan.io/tx/0x00a39800110d523b1ec737139b37dc58784fe46e59977ca7d3175324da13267f`
+`https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4`
 
 > "A borrower repays 250 dollars toward loan seven. This is a real transaction — the tokens actually
 > moved to the lender, and it emitted a Repaid event. Status: success."
@@ -83,15 +83,13 @@ node tools/live-check.mjs
 > constraint, not a bug, and we show exactly why — then posts to the book on Creditcoin, which
 > re-derives everything and writes the borrower's history."
 
-**If the book is deployed by recording time:** open the CC3 `post` transaction and the
-`RepaymentPosted` event; show `totalRepaid` for the borrower going up.
+Open the CC3 `post` transaction (`0x0f3d4ca0…`) and its `RepaymentPosted` event; show the book's
+`totalRepaid` for the borrower reading 250000000 and `repaymentCount` 1.
 
-**If not yet funded:** say so, honestly —
-
-> "The book is written, tested, and waiting on testnet funds for its first on-chain posting. The
-> repayment you just saw is the exact transaction it will post — nothing here is mocked."
-
-Screen: the evidence page's honest-status line.
+> "And here it is on Creditcoin. The agent proved that repayment and posted it — the book re-derived
+> every field and wrote it to the borrower's history. 250 dollars, loan seven, from a transaction
+> that provably happened. A real Ethereum repayment, now an entry in a Creditcoin credit history that
+> no one can forge."
 
 ## 2:30 — Close
 
@@ -106,5 +104,4 @@ Screen: the deployed addresses on the evidence page.
 - Everything at 0:18, 0:45, 1:40 is real and runnable **now**; record those first.
 - `spike.mjs` and `live-check.mjs` each take a minute or two (they wait on the live prover) — record,
   then speed the wait in the edit.
-- Do not claim the CC3 posting is live until the book is deployed. The honest version is stronger and
-  is the version this jury rewards.
+- The CC3 posting is live (tx `0x0f3d4ca0…`); the whole loop can be re-run with `node tools/post-once.mjs`.

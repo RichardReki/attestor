@@ -131,8 +131,9 @@ On-chain, deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`:
 
 ## 6. Honest status
 
-The security core is complete and the proof pipeline is verified end to end against the live
-precompiles. The source half is deployed on Sepolia and a real repayment has been made and proven.
-**`AttestedLoanBook` is not yet deployed on CC3** — the first on-chain posting is waiting on CC3
-testnet funds. When it is funded, the demonstrated repayment above is the exact transaction the agent
-will prove and post; nothing in the flow is mocked.
+The full loop is live. `AttestedLoanBook` is deployed on CC3 Testnet
+(`0xe31906a2A7162b865b672a3a51B75813564db5e9`), and a real Sepolia repayment
+([`0x49592b0c…`](https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4)) has been proven and posted to it
+([`0x0f3d4ca0…`](https://creditcoin-testnet.blockscout.com/tx/0x0f3d4ca04af2ce2eac4004a0fddb2f8d26b751ef27c08e04aacf3e2f8ee052f4)), so the book now reads
+`totalRepaid = 250000000` and `repaymentCount = 1` for the borrower. Nothing in the flow is mocked;
+reproduce it with `node tools/post-once.mjs`.

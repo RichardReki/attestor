@@ -18,13 +18,11 @@ rule disposes — and nothing from it is reused: different chain, different prot
 
 ## Status
 
-The security core is done and the proof pipeline is verified end to end against the live
-precompiles. 48 tests pass — 28 on the contracts, 20 on the agent — and six claims about the
+**The full loop is live.** A real repayment on Sepolia has been proven and posted to the loan book
+on Creditcoin, which now records the borrower's credit history on-chain — end to end, nothing mocked
+(transactions below). 48 tests pass — 28 on the contracts, 20 on the agent — and six claims about the
 precompiles are re-checked against the live CC3 runtime on every run (via `tools/live-check.mjs`),
-because mocked tests cannot make claims about a precompile they are mocking. An earlier build of the
-source contract is already live on Sepolia (it demonstrated the pipeline; see git history); the loan
-contracts here deploy to Sepolia in one command, and the book on Creditcoin is waiting on CC3
-testnet funds for its first posting.
+because mocked tests cannot make claims about a precompile they are mocking.
 
 Reproduce the whole proof pipeline yourself, with no key and no gas:
 
@@ -128,11 +126,16 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 | `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
 | `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
 
-**Demonstrated source fact** (the exact transaction the agent will prove once the book is funded):
-a real repayment of 250 mUSD, borrower → lender, `status 1`, emitting
-`Repaid(borrower, loanId 7, 250000000, deadline)` —
-[`0x00a39800…`](https://sepolia.etherscan.io/tx/0x00a39800110d523b1ec737139b37dc58784fe46e59977ca7d3175324da13267f).
-The tokens actually moved (lender balance went to 250 mUSD), so this is an economic fact, not a log line.
+**The live end-to-end, on-chain both sides:**
+
+1. Borrower repays 250 mUSD on Sepolia (real transfer, `status 1`, emits `Repaid`) —
+   [`0x49592b0c…`](https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4).
+2. The agent proves it and posts it to the book on Creditcoin —
+   [`0x0f3d4ca0…`](https://creditcoin-testnet.blockscout.com/tx/0x0f3d4ca04af2ce2eac4004a0fddb2f8d26b751ef27c08e04aacf3e2f8ee052f4), which now reads
+   `totalRepaid = 250000000`, `repaymentCount = 1` for the borrower.
+
+A real Ethereum repayment is now an unforgeable entry in a Creditcoin credit history. Reproduce the
+whole loop with `node tools/post-once.mjs`.
 
 Deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. An earlier generic build of the source
 contract (`0xe31906a2…`) proved the pipeline before the product settled on the loan model above.
