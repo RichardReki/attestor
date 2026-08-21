@@ -14,6 +14,8 @@ written inside the contest window; see `git log` for the first commit. Prior wor
 (RotorVault, on Flare) is named here as the origin of the *pattern* — an agent proposes, an on-chain
 rule disposes — and nothing from it is reused: different chain, different protocol, different code.
 
+**Live evidence page:** https://richardreki.github.io/attestor/ — the attestation gap and the attack/refusal table, read live from both chains in your browser.
+
 ## Status
 
 The security core is done and the proof pipeline is verified end to end against the live
