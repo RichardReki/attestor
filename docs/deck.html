@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attestor — deck</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm; }
+  :root{
+    --ink:#14181d; --sub:#5a6570; --faint:#8a94a0; --rule:#d9d5c9; --rule-soft:#ebe8de;
+    --paper:#faf8f2; --panel:#f2efe6; --haze:#9a6b2f; --ok:#2f7d5b; --bad:#b23b28;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font:10.5pt/1.5 var(--sans);
+       -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{max-width:180mm;margin:0 auto;padding:8mm 0}
+  h1,h2,h3,.lbl,.mono,code,th{font-family:var(--mono)}
+
+  header{border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:14px}
+  h1{margin:0;font-size:22pt;letter-spacing:-.02em}
+  .tag{color:var(--sub);font-size:11pt;margin-top:4px;max-width:150mm}
+  .meta{color:var(--faint);font-size:8.5pt;letter-spacing:.06em;text-transform:uppercase;margin-top:6px}
+
+  section{margin:14px 0;page-break-inside:avoid}
+  h2{font-size:9pt;letter-spacing:.14em;text-transform:uppercase;color:var(--haze);margin:0 0 6px;
+     border-bottom:1px solid var(--rule-soft);padding-bottom:3px}
+  p{margin:0 0 7px}
+  .lead{font-size:11pt}
+  b{font-weight:600}
+  .haze{color:var(--haze)}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* flow diagram */
+  .flow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:6px 0}
+  .node{border:1px solid var(--rule);border-radius:5px;padding:8px 10px;background:var(--panel)}
+  .node .h{font-family:var(--mono);font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+  .node .b{font-size:9pt}
+  .node.key{border-color:var(--haze);border-width:1.5px}
+  .arrow{text-align:center;color:var(--haze);font-family:var(--mono);font-size:8pt;align-self:center}
+
+  table{border-collapse:collapse;width:100%;font-size:9pt;margin-top:4px}
+  th{text-align:left;font-size:7.5pt;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);
+     font-weight:400;padding:0 8px 5px 0;border-bottom:1px solid var(--rule)}
+  td{padding:5px 8px 5px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  td.c{font-family:var(--mono);white-space:nowrap;color:var(--ink)}
+  td:last-child,th:last-child{padding-right:0}
+
+  ol.finds{margin:0;padding-left:0;list-style:none;counter-reset:f;
+           column-count:1}
+  ol.finds li{counter-increment:f;position:relative;padding:4px 0 4px 22px;border-bottom:1px solid var(--rule-soft);font-size:9pt}
+  ol.finds li::before{content:counter(f);position:absolute;left:0;top:4px;font-family:var(--mono);
+                      font-size:8pt;color:var(--haze);font-weight:600}
+  ol.finds b{font-weight:600}
+
+  code{background:var(--panel);border:1px solid var(--rule-soft);border-radius:3px;padding:0 4px;font-size:8.5pt}
+  .kv{font-family:var(--mono);font-size:8.5pt;line-height:1.7}
+  .kv .k{color:var(--sub)}
+  .status{background:var(--panel);border-left:3px solid var(--haze);padding:8px 12px;font-size:9.5pt}
+  footer{margin-top:16px;border-top:1px solid var(--rule);padding-top:8px;color:var(--faint);
+         font-size:8pt;display:flex;justify-content:space-between;font-family:var(--mono)}
+  .pb{page-break-before:always}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Attestor</h1>
+    <div class="tag">A cross-chain loan repayment history you cannot lie to — built on Attestcoin.</div>
+    <div class="meta">BUIDL CTC 2026 Fall · Ethereum Sepolia → Creditcoin CC3 Testnet · github.com/RichardReki/attestor</div>
+  </header>
+
+  <section>
+    <h2>The problem</h2>
+    <p class="lead">Creditcoin exists to make credit history verifiable. But the money that builds
+    that history — stablecoin loans and repayments — lives on Ethereum. Bridging the <i>record</i>
+    across chains usually means trusting a relayer's word that a repayment happened. A credit history
+    is worthless if it can be forged.</p>
+  </section>
+
+  <section>
+    <h2>The solution</h2>
+    <p class="lead">A borrower repays on Ethereum; an autonomous agent posts it to a credit history on
+    Creditcoin — but the record is written <b>only</b> if an Attestcoin proof shows the repayment
+    really happened. The agent proposes; the on-chain book disposes. <b>Neither the agent nor we can
+    write a false entry.</b></p>
+    <div class="flow">
+      <div class="node"><div class="h">Ethereum Sepolia</div><div class="b">Borrower calls <code>repay()</code> — real USDC moves to the lender, emits <code>Repaid</code>.</div></div>
+      <div class="node"><div class="h">Off-chain agent</div><div class="b">Watches, applies a risk gate, waits ~8 min for attestation, fetches the proof, proposes a posting.</div></div>
+      <div class="node key"><div class="h">Creditcoin CC3</div><div class="b"><code>AttestedLoanBook</code> verifies the proof on the BlockProver precompile, re-derives it, writes the history.</div></div>
+    </div>
+    <p style="font-size:9pt;color:var(--sub)">Remove Attestcoin and there is no product: the book holds no trusted input of its own. Every write to a credit history is downstream of one precompile call — <code>0x…0FD2 . verify(…)</code> returning without reverting.</p>
+  </section>
+
+  <section>
+    <h2>The security model — Attestcoin proves <i>less</i> than it appears</h2>
+    <p>It proves a transaction was <b>included in a confirmed block</b> — not that it <i>succeeded</i>,
+    called the right contract, or was sent by who it claims. The book enforces, on-chain, every
+    property the proof does not:</p>
+    <table>
+      <tr><th>Check</th><th>Without it</th></tr>
+      <tr><td class="c">status == 1</td><td>a reverted repayment posts as if it paid</td></tr>
+      <tr><td class="c">chainId (resolved)</td><td>a valid proof from the wrong chain is accepted</td></tr>
+      <tr><td class="c">source contract</td><td>any contract's call is posted as a repayment</td></tr>
+      <tr><td class="c">repay selector</td><td>a different function passes as a repayment</td></tr>
+      <tr><td class="c">borrower == sender</td><td>credit is assigned to whoever relays the proof</td></tr>
+      <tr><td class="c">freshness + maxAge</td><td>an attested repayment is postable forever</td></tr>
+      <tr><td class="c">tx-hash consumed</td><td>one repayment is posted again and again</td></tr>
+    </table>
+    <p style="font-size:9pt;color:var(--sub);margin-top:6px">Plus economic guards: zero-amount and self-payment repayments are refused on both chains, because an entry is only worth something if real money moved. <b>28 contract tests; 22 reject a forgery.</b></p>
+  </section>
+
+  <div class="pb"></div>
+
+  <section>
+    <h2>What we found that the docs don't say — seven undocumented protocol facts</h2>
+    <ol class="finds">
+      <li><b>The precompile reverts on a bad proof; it does not return <code>false</code></b> as the SDK documents — so <code>if (!verified)</code> is dead code.</li>
+      <li><b>~8-minute latency is a real constraint:</b> a 32-block reorg window named only in an error string, plus ~39 blocks of attestation lag. We surface it, not hide it.</li>
+      <li><b><code>chainKey</code> is environment-scoped</b> — key 1 is Sepolia on testnet, Ethereum mainnet on mainnet. Bind to <code>chainId</code>, or a promotion silently changes trust.</li>
+      <li><b>SDK and chain names differ:</b> the function is <code>verify</code> on-chain, not the SDK's <code>verifySingle</code>; ChainInfo is snake_case on-chain.</li>
+      <li><b>The proof envelope is <code>(uint8,bytes[])</code>, not <code>bytes[]</code></b> — and the SDK's own docs say the wrong one. A consumer written from the docs decodes nothing.</li>
+      <li><b>The precompiles can't be fork-tested, and the failure is silent</b> — a call to the codeless address succeeds and returns nothing, passing the wrong assertion.</li>
+      <li><b><code>get_chain_by_key</code> returns one tuple, not two values</b> — a bug we shipped; every mocked test passed, it reverted every time on-chain. It's why we built a live-check layer.</li>
+    </ol>
+    <p style="font-size:9pt;color:var(--sub);margin-top:6px">Findings 5 and 7 make a documentation-following consumer fail outright. They are our ecosystem contribution as much as the product is.</p>
+  </section>
+
+  <section>
+    <h2>Live &amp; verifiable — no key, no gas</h2>
+    <div class="two">
+      <div>
+        <div class="kv">
+          <div><span class="k">reproduce &nbsp;</span> <code>node spike.mjs</code></div>
+          <div><span class="k">tests &nbsp;&nbsp;&nbsp;&nbsp;</span> <code>forge test</code> — 28 pass</div>
+          <div><span class="k">live &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <code>node tools/live-check.mjs</code></div>
+          <div><span class="k">agent &nbsp;&nbsp;&nbsp;&nbsp;</span> 20 tests, tsc clean</div>
+        </div>
+      </div>
+      <div class="kv">
+        <div><span class="k">MockUSD &nbsp;&nbsp;</span> 0xCFd5E8e6…d0ef (Sepolia)</div>
+        <div><span class="k">LoanRepay &nbsp;</span> 0x08F8b91A…9021 (Sepolia)</div>
+        <div><span class="k">real repay </span> 0x00a39800… (250 mUSD moved)</div>
+        <div><span class="k">BlockProver</span> 0x…0FD2 &nbsp; <span class="k">ChainInfo</span> 0x…0FD3</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Honest status &amp; roadmap</h2>
+    <div class="status">
+      Security core complete; proof pipeline verified end-to-end against the live precompiles. Source
+      half deployed on Sepolia with a real repayment proven. <b>The loan book on CC3 is written and
+      tested but not yet deployed — the first on-chain posting is waiting on testnet funds.</b> The
+      demonstrated repayment is the exact transaction it will post; nothing is mocked.
+    </div>
+    <p style="margin-top:8px"><b class="haze">Next:</b> deploy the book and run the first live posting · multi-loan credit scoring read by a Creditcoin lending contract · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
+  </section>
+
+  <footer>
+    <span>Attestor · built inside the contest window (see git log)</span>
+    <span>github.com/RichardReki/attestor</span>
+  </footer>
+
+</div>
+</body>
+</html>
