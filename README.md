@@ -126,6 +126,12 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 | `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
 | `AttestedLoanBook` (CC3 Testnet) | pending — waiting on CC3 testnet funds |
 
+**Demonstrated source fact** (the exact transaction the agent will prove once the book is funded):
+a real repayment of 250 mUSD, borrower → lender, `status 1`, emitting
+`Repaid(borrower, loanId 7, 250000000, deadline)` —
+[`0x00a39800…`](https://sepolia.etherscan.io/tx/0x00a39800110d523b1ec737139b37dc58784fe46e59977ca7d3175324da13267f).
+The tokens actually moved (lender balance went to 250 mUSD), so this is an economic fact, not a log line.
+
 Deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. An earlier generic build of the source
 contract (`0xe31906a2…`) proved the pipeline before the product settled on the loan model above.
 
