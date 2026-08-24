@@ -5,6 +5,7 @@ import {Script, console2} from "forge-std/Script.sol";
 import {MockUSD} from "../src/MockUSD.sol";
 import {LoanRepayment} from "../src/LoanRepayment.sol";
 import {AttestedLoanBook} from "../src/AttestedLoanBook.sol";
+import {CreditLine} from "../src/CreditLine.sol";
 
 /// Two deployments, in order, because the book is bound to the source at construction:
 ///
@@ -55,5 +56,27 @@ contract DeployBook is Script {
         console2.log("  bound to source:", source);
         console2.log("  bound to chainId:", SOURCE_CHAIN_ID);
         console2.logBytes4(selector);
+    }
+}
+
+/// Deploys the credit consumer on CC3: a MockUSD lending pool and a CreditLine bound to the live
+/// AttestedLoanBook, then seeds the pool so borrowers can actually draw against their attested history.
+///
+///   LOAN_BOOK=0x… POOL=1000000000000 ///   forge script script/Deploy.s.sol:DeployCreditLine --rpc-url cc3 --broadcast
+contract DeployCreditLine is Script {
+    function run() external {
+        address book = vm.envAddress("LOAN_BOOK");
+        uint256 pool = vm.envOr("POOL", uint256(1_000_000e6)); // 1,000,000 mUSD of lending liquidity
+
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        MockUSD asset = new MockUSD();
+        CreditLine line = new CreditLine(book, address(asset));
+        asset.mint(address(line), pool); // seed the pool
+        vm.stopBroadcast();
+
+        console2.log("MockUSD pool (CC3):   ", address(asset));
+        console2.log("CreditLine (CC3):     ", address(line));
+        console2.log("  bound to loan book: ", book);
+        console2.log("  seeded liquidity:   ", pool);
     }
 }
