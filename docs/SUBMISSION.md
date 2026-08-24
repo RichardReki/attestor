@@ -82,7 +82,7 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
   nothing from it is reused (different chain, protocol, code).
 - **Deployed on a testnet:** yes — `MockUSD` `0xCFd5E8e6…` and `LoanRepayment` `0x08F8b91A…` on
   Ethereum Sepolia, with a real 250-mUSD repayment proven on-chain (tx `0x49592b0c…`).
-  `AttestedLoanBook` on Creditcoin CC3 Testnet: `0xe31906a2A7162b865b672a3a51B75813564db5e9`.
+  `AttestedLoanBook` on Creditcoin CC3 Testnet: `0xe31906a2A7162b865b672a3a51B75813564db5e9`, and a `CreditLine` consumer `0xC45f8594579191b5125B24f721cA4e2f93811A8c` that reads the attested history and lends against it — a borrower with a proven repayment drew a real undercollateralised loan (tx `0xb62ffcff…`). The full loop — repay on Ethereum, prove, post, borrow — is live on-chain both sides, nothing mocked.
 - **Attestcoin as a core feature:** yes — every write to the credit history is gated on a
   BlockProver-precompile verification; the pipeline is verified end-to-end against the live
   precompiles (`node tools/live-check.mjs`), and 28 contract tests + 20 agent tests pass.

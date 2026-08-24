@@ -17,6 +17,11 @@ That is Creditcoin's own reason to exist, made literal: the money moves where th
 (Creditcoin). An off-chain agent proposes each posting; the on-chain book disposes. Neither the
 agent nor we can write a false entry into someone's history.
 
+And the history is *used*: `CreditLine` reads it and extends undercollateralised credit sized purely
+by the attested record — no collateral, no off-chain score. Because the record cannot be forged,
+neither can the credit. Live on CC3 at `0xC45f8594579191b5125B24f721cA4e2f93811A8c`; a borrower with a proven 250 mUSD
+repayment drew a real 125 mUSD loan against it (tx `0xb62ffcff…`).
+
 ## 2. Attestcoin is the main flow, not a feature beside it
 
 Remove Attestcoin and there is no product. The loan book on Creditcoin holds **no** trusted input of

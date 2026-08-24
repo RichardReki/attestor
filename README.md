@@ -9,6 +9,12 @@ That is Creditcoin's own thesis made literal: the money moves where the money li
 the *record of it* lives where a record can be trusted (Creditcoin). The agent proposes; the chain
 disposes; neither the agent nor we can write a false entry into someone's history.
 
+And the history is not write-only. `CreditLine` reads it and lends against it: a borrower's
+undercollateralised credit limit is set *entirely* by their attested, cross-chain repayment record —
+no collateral, no off-chain score. Because the record cannot be forged (that is the seven checks),
+neither can the credit. A repayment that happened on Ethereum becomes the sole determinant of credit
+on Creditcoin — proven, drawn, and closed on-chain, both sides.
+
 Built for **BUIDL CTC 2026 Fall** (2026-08-13 → 2026-09-06). Every line of this repository was
 written inside the contest window; see `git log` for the first commit. Prior work of ours
 (RotorVault, on Flare) is named here as the origin of the *pattern* — an agent proposes, an on-chain
@@ -125,17 +131,24 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 | `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) |
 | `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
 | `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
+| `CreditLine` (CC3 Testnet) | [`0xC45f8594579191b5125B24f721cA4e2f93811A8c`](https://creditcoin-testnet.blockscout.com/address/0xC45f8594579191b5125B24f721cA4e2f93811A8c) — reads the history, lends against it |
 
-**The live end-to-end, on-chain both sides:**
+**The live end-to-end, on-chain both sides — and the loop closed:**
 
 1. Borrower repays 250 mUSD on Sepolia (real transfer, `status 1`, emits `Repaid`) —
    [`0x49592b0c…`](https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4).
 2. The agent proves it and posts it to the book on Creditcoin —
    [`0x0f3d4ca0…`](https://creditcoin-testnet.blockscout.com/tx/0x0f3d4ca04af2ce2eac4004a0fddb2f8d26b751ef27c08e04aacf3e2f8ee052f4), which now reads
    `totalRepaid = 250000000`, `repaymentCount = 1` for the borrower.
+3. `CreditLine` reads that attested history and the borrower draws a **real 125 mUSD
+   undercollateralised loan** against it —
+   [`0xb62ffcff…`](https://creditcoin-testnet.blockscout.com/tx/0xb62ffcffdb485e60a282f95e06bc007fe71064e55c6caa8a8d91d92fa55b4b77).
+   A borrower with no attested history has a limit of zero and cannot draw a cent.
 
-A real Ethereum repayment is now an unforgeable entry in a Creditcoin credit history. Reproduce the
-whole loop with `node tools/post-once.mjs`.
+A real Ethereum repayment is now an unforgeable entry in a Creditcoin credit history — and that
+history is the *sole* basis for real credit. Reproduce the loop with `node tools/post-once.mjs`;
+draw against it with `script/Borrow.s.sol` (add `--gas-estimate-multiplier 400 --skip-simulation` on
+CC3, whose Frontier gas estimate runs low for cross-contract calls).
 
 All deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. (The CC3 book and an earlier,
 now-superseded Sepolia contract share the address string `0xe31906a2…` only because both were the

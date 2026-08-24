@@ -152,13 +152,15 @@
   <section>
     <h2>Honest status &amp; roadmap</h2>
     <div class="status">
-      <b>The full loop is live, on-chain both sides.</b> A borrower repaid 250 mUSD on Sepolia
-      (<span class="mono">0x49592b0c…</span>); the agent proved it and posted it to the loan book on
-      Creditcoin (<span class="mono">0x0f3d4ca0…</span>), which now reads
-      <span class="mono">totalRepaid 250000000</span>, <span class="mono">repaymentCount 1</span> for
-      the borrower. Nothing is mocked — reproduce with <code>node tools/post-once.mjs</code>.
+      <b>The full loop is live, on-chain both sides, and closed.</b> A borrower repaid 250 mUSD on
+      Sepolia (<span class="mono">0x49592b0c…</span>); the agent proved it and posted it to the loan
+      book on Creditcoin (<span class="mono">0x0f3d4ca0…</span>), which reads
+      <span class="mono">totalRepaid 250000000</span> for the borrower; then <code>CreditLine</code>
+      read that attested history and the borrower drew a <b>real 125 mUSD undercollateralised loan</b>
+      against it (<span class="mono">0xb62ffcff…</span>). Credit sized entirely by an unforgeable
+      cross-chain record. Nothing is mocked — reproduce with <code>node tools/post-once.mjs</code>.
     </div>
-    <p style="margin-top:8px"><b class="haze">Next:</b> the agent running continuously as a service · multi-loan credit scoring read by a Creditcoin lending contract · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
+    <p style="margin-top:8px"><b class="haze">Next:</b> the agent running continuously as a service · richer risk scoring over multi-loan history · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
   </section>
 
   <footer>
