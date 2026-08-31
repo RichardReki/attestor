@@ -23,8 +23,16 @@ Attestor is a cross-chain loan repayment history you cannot lie to.
 
 A borrower repays a loan on Ethereum, where the stablecoin lives. An autonomous off-chain agent
 watches for the repayment and posts it to a credit history on Creditcoin — but the record is written
-**only** if an Attestcoin proof shows the repayment really happened. The agent proposes; the on-chain
-loan book disposes. Neither the agent nor its operator can write a false entry into anyone's history.
+**only** if a USC proof shows the repayment really happened. The agent proposes; the on-chain loan
+book disposes. Neither the agent nor its operator can write a false entry into anyone's history.
+
+**The repayments are not ours.** `AaveLoanBook` reads the **Aave V3 Pool on Sepolia** — a lending
+protocol we did not write, used by people we have never met, whose `Repay` events we cannot cause,
+populate or alter. This matters more than any check in the contract: a history you issue to yourself
+proves only that you can issue history to yourself. `0x2C56b94f8b27E116C5686B41473bC038a6d86A88`
+repaid 25 USDC to Aave, and that fact is now a credit record on Creditcoin that nobody — including
+us — can forge. A second book proving repayments to a source contract of our own is kept alongside
+as the control; the contrast is the argument.
 
 That is Creditcoin's own reason to exist, made literal: the money moves where the money lives, and the
 record of it lives where a record can be trusted. It is deliberately built around what Attestcoin
@@ -99,20 +107,31 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
 - **Original work created during the hackathon:** yes — first commit `84c511a` is inside the
   2026-08-13 → 09-14 window; prior work (RotorVault, on Flare) is named as the pattern's origin and
   nothing from it is reused (different chain, protocol, code).
-- **Deployed on a testnet:** yes — `MockUSD` `0xCFd5E8e6…` and `LoanRepayment` `0x08F8b91A…` on
-  Ethereum Sepolia, with a real 250-mUSD repayment proven on-chain (tx `0x49592b0c…`).
-  `AttestedLoanBook` on Creditcoin CC3 Testnet: `0xe31906a2A7162b865b672a3a51B75813564db5e9`, and a `CreditLine` consumer `0xC45f8594579191b5125B24f721cA4e2f93811A8c` that reads the attested history and lends against it — a borrower with a proven repayment drew a real undercollateralised loan (tx `0xb62ffcff…`). The full loop — repay on Ethereum, prove, post, borrow — is live on-chain both sides, nothing mocked.
-- **Attestcoin as a core feature:** yes — every write to the credit history is gated on a
-  BlockProver-precompile verification; the pipeline is verified end-to-end against the live
-  precompiles (`node tools/live-check.mjs`), and 28 contract tests + 20 agent tests pass.
+- **Deployed on a testnet:** yes. `AaveLoanBook` on Creditcoin CC3 Testnet:
+  `0xc3762daB9AB246771a91B764d0E45f03619A61ea`, reading the **Aave V3 Pool**
+  `0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951` on Ethereum Sepolia — a contract we did not deploy.
+  A real third-party repayment of 25 USDC (Sepolia tx `0x2f8901c4…`, block 11,605,409) was proven
+  and posted (CC3 tx `0x7fb71b18…`, 221,790 gas); the book now reads `totalRepaid = 25000000` for
+  that borrower. The control path is also live: `MockUSD` `0xCFd5E8e6…` + `LoanRepayment`
+  `0x08F8b91A…` on Sepolia, `AttestedLoanBook` `0xe31906a2A7162b865b672a3a51B75813564db5e9` and a
+  `CreditLine` consumer `0xC45f8594579191b5125B24f721cA4e2f93811A8c` on CC3, where a proven
+  repayment funded a real undercollateralised loan (tx `0xb62ffcff…`). Nothing is mocked on either
+  path.
+- **USC / Attestcoin as a core feature:** yes — every write to the credit history is gated on a
+  BlockProver-precompile verification, and the source chain is resolved through the ChainInfo
+  precompile rather than trusted as a raw `chainKey`. The pipeline is verified end-to-end against
+  the live precompiles (`node tools/live-check.mjs`, `spike/aave-proof.mjs`), and **51 contract
+  tests + 20 agent tests pass**, 28 of the contract tests rejecting a forged or invalid input.
 
 ## Encouraged extras
 
 - **Network:** Ethereum Sepolia (source) → Creditcoin CC3 Testnet (target, chainId 102031).
-- **What is real vs pending, stated plainly:** the security core is complete, the proof pipeline is
-  verified end-to-end against the live precompiles, the source half is deployed with a real
-  repayment proven, and the loan book on CC3 has recorded it end to end (Sepolia repay
-  `0x49592b0c…` -> CC3 post `0x0f3d4ca0…`, book now reads totalRepaid 250000000 / repaymentCount 1).
-  Nothing in the flow is mocked.
+- **What is real vs pending, stated plainly:** the security core is complete and the proof pipeline
+  is verified end-to-end against the live precompiles. A repayment made by a stranger to Aave V3 has
+  been proven and recorded (Sepolia `0x2f8901c4…` → CC3 `0x7fb71b18…`, book reads totalRepaid
+  25000000). `spike/aave-proof.mjs` reproduces the whole thing keylessly and picks a *fresh*
+  repayment each run, so the demonstration cannot go stale. Not yet done: the agent watches one
+  repayment at a time rather than running continuously against Aave, and `CreditLine` is wired to
+  the control book rather than the Aave one. Nothing in the flow is mocked.
 - **Ecosystem contribution:** seven undocumented Attestcoin behaviours found and documented, two of
   which make a consumer written from the current docs fail outright — reported for the team's benefit.

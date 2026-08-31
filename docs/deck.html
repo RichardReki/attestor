@@ -142,9 +142,10 @@
         </div>
       </div>
       <div class="kv">
-        <div><span class="k">MockUSD &nbsp;&nbsp;</span> 0xCFd5E8e6…d0ef (Sepolia)</div>
-        <div><span class="k">LoanBook &nbsp;&nbsp;</span> 0xe31906a2…5e9 (CC3) · LoanRepay 0x08F8b91A… (Sep)</div>
-        <div><span class="k">repay (Sep)</span> 0x49592b0c… &nbsp; <span class="k">post (CC3)</span> 0x0f3d4ca0…</div>
+        <div><span class="k">AaveLoanBook</span> 0xc3762daB…61ea (CC3)</div>
+        <div><span class="k">Aave V3 Pool</span> 0x6Ae43d32…8951 (Sepolia) — not ours</div>
+        <div><span class="k">repay (Sep)</span> 0x2f8901c4… &nbsp; <span class="k">post (CC3)</span> 0x7fb71b18…</div>
+        <div><span class="k">control &nbsp;&nbsp;&nbsp;&nbsp;</span> AttestedLoanBook 0xe31906a2…5e9 · CreditLine 0xC45f8594…</div>
         <div><span class="k">BlockProver</span> 0x…0FD2 &nbsp; <span class="k">ChainInfo</span> 0x…0FD3</div>
       </div>
     </div>
@@ -153,15 +154,24 @@
   <section>
     <h2>Honest status &amp; roadmap</h2>
     <div class="status">
-      <b>The full loop is live, on-chain both sides, and closed.</b> A borrower repaid 250 mUSD on
-      Sepolia (<span class="mono">0x49592b0c…</span>); the agent proved it and posted it to the loan
-      book on Creditcoin (<span class="mono">0x0f3d4ca0…</span>), which reads
-      <span class="mono">totalRepaid 250000000</span> for the borrower; then <code>CreditLine</code>
-      read that attested history and the borrower drew a <b>real 125 mUSD undercollateralised loan</b>
-      against it (<span class="mono">0xb62ffcff…</span>). Credit sized entirely by an unforgeable
-      cross-chain record. Nothing is mocked — reproduce with <code>node tools/post-once.mjs</code>.
+      <b>A stranger's repayment is now credit history on Creditcoin.</b>
+      <span class="mono">0x2C56b94f…6A88</span> repaid <b>25 USDC to Aave V3</b> on Sepolia
+      (<span class="mono">0x2f8901c4…</span>, block 11,605,409). We did not send it, did not fund it,
+      and learned it existed by reading the chain. Its proof was posted to
+      <code>AaveLoanBook</code> (<span class="mono">0x7fb71b18…</span>, 221,790 gas), which now reads
+      <span class="mono">totalRepaid 25000000</span> for that borrower — a public view call anyone can
+      make. Run <code>tools/post-aave.mjs</code> again and it picks a <i>different</i> repayment,
+      because people keep making them; a pinned fixture would go stale and quietly stop meaning
+      anything.
+      <br><br>
+      <b>The control, deliberately kept:</b> the same machinery against a source contract of our own
+      closed the full loop earlier — repay 250 mUSD (<span class="mono">0x49592b0c…</span>) → post
+      (<span class="mono">0x0f3d4ca0…</span>) → a <b>real 125 mUSD undercollateralised loan</b> drawn
+      against the attested history (<span class="mono">0xb62ffcff…</span>). Every check passes on both
+      paths. Only one is evidence about anybody's creditworthiness, and it is not the one where we
+      wrote the borrower, the token and the contract it paid.
     </div>
-    <p style="margin-top:8px"><b class="haze">Next:</b> the agent running continuously as a service · richer risk scoring over multi-loan history · batch proofs (the SDK supports up to 10) · mainnet with real USDC and a governance-set source binding.</p>
+    <p style="margin-top:8px"><b class="haze">Next:</b> the agent watching Aave continuously rather than one repayment at a time · more source protocols, since a market is configuration once the event layout is known · batch proofs (the precompile takes up to 10, measured) · CC3 mainnet against Ethereum Aave, where the same chainKey means a different chain and the resolution check earns its keep.</p>
   </section>
 
   <footer>

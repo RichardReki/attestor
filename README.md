@@ -167,27 +167,53 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 
 | | |
 | --- | --- |
-| `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) |
-| `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — lender `0x…dEaD`, distinct from the borrower |
-| `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) |
+| **`AaveLoanBook`** (CC3 Testnet) | [`0xc3762daB9AB246771a91B764d0E45f03619A61ea`](https://creditcoin-testnet.blockscout.com/address/0xc3762daB9AB246771a91B764d0E45f03619A61ea) — **reads Aave V3, a protocol we did not write** |
+| Aave V3 Pool (Sepolia) | [`0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951`](https://sepolia.etherscan.io/address/0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951) — not ours, not deployed by us |
 | `CreditLine` (CC3 Testnet) | [`0xC45f8594579191b5125B24f721cA4e2f93811A8c`](https://creditcoin-testnet.blockscout.com/address/0xC45f8594579191b5125B24f721cA4e2f93811A8c) — reads the history, lends against it |
+| `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) — the control: same checks, source we wrote |
+| `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) — the control's token |
+| `LoanRepayment` (Sepolia) | [`0x08F8b91A9d447C309F1788002BF51BF0BEE69021`](https://sepolia.etherscan.io/address/0x08F8b91A9d447C309F1788002BF51BF0BEE69021) — the control's source contract |
 
-**The live end-to-end, on-chain both sides — and the loop closed:**
+### A stranger's repayment, now credit history on Creditcoin
+
+This is the evidence the project stands on. Nobody involved is us.
+
+1. **`0x2C56b94f8b27E116C5686B41473bC038a6d86A88` repaid 25 USDC to Aave V3 on Sepolia** —
+   [`0x2f8901c4…`](https://sepolia.etherscan.io/tx/0x2f8901c49c3702d83bd18ed0012008da025d5275009b0190c44c76badb91f7a8),
+   block 11,605,409. We did not send it, did not fund it, and found out it existed by reading the
+   chain. That account has its own history on Sepolia and no connection to any address in this
+   repository.
+2. **The proof was posted to `AaveLoanBook` on Creditcoin** —
+   [`0x7fb71b18…`](https://creditcoin-testnet.blockscout.com/tx/0x7fb71b18453c14538b6e7cd8553a41e184efec1c299bf3ca61a943a0fbe037e4),
+   block 5,406,133, 221,790 gas. The book now reads `totalRepaid = 25000000`,
+   `repaymentCount = 1`, `repaidByOthers = 0` for that borrower — read it yourself, it is a public
+   view call.
+
+Run it again and it will pick a *different* repayment, because people keep making them:
+
+```bash
+AAVE_BOOK=0xc3762daB9AB246771a91B764d0E45f03619A61ea node tools/post-aave.mjs --dry
+```
+
+A pinned fixture would eventually go stale and quietly stop meaning anything. Fetching a fresh
+repayment on every run is the demonstration.
+
+### The control, for comparison
+
+The same machinery against a source contract of our own — which is why the section above matters:
 
 1. Borrower repays 250 mUSD on Sepolia (real transfer, `status 1`, emits `Repaid`) —
    [`0x49592b0c…`](https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4).
-2. The agent proves it and posts it to the book on Creditcoin —
-   [`0x0f3d4ca0…`](https://creditcoin-testnet.blockscout.com/tx/0x0f3d4ca04af2ce2eac4004a0fddb2f8d26b751ef27c08e04aacf3e2f8ee052f4), which now reads
-   `totalRepaid = 250000000`, `repaymentCount = 1` for the borrower.
+2. The agent proves it and posts it to `AttestedLoanBook` —
+   [`0x0f3d4ca0…`](https://creditcoin-testnet.blockscout.com/tx/0x0f3d4ca04af2ce2eac4004a0fddb2f8d26b751ef27c08e04aacf3e2f8ee052f4).
 3. `CreditLine` reads that attested history and the borrower draws a **real 125 mUSD
    undercollateralised loan** against it —
    [`0xb62ffcff…`](https://creditcoin-testnet.blockscout.com/tx/0xb62ffcffdb485e60a282f95e06bc007fe71064e55c6caa8a8d91d92fa55b4b77).
    A borrower with no attested history has a limit of zero and cannot draw a cent.
 
-A real Ethereum repayment is now an unforgeable entry in a Creditcoin credit history — and that
-history is the *sole* basis for real credit. Reproduce the loop with `node tools/post-once.mjs`;
-draw against it with `script/Borrow.s.sol` (add `--gas-estimate-multiplier 400 --skip-simulation` on
-CC3, whose Frontier gas estimate runs low for cross-contract calls).
+Every check passes on both paths. Only one of them is evidence about anybody's creditworthiness,
+and it is not this one — we wrote the borrower, the token and the contract it paid. Keeping the
+weaker demonstration visible next to the stronger one is the honest way to show what changed.
 
 All deployed from `0x66F9Bd73c4847584f158c8D19EEd179F21adC169`. (The CC3 book and an earlier,
 now-superseded Sepolia contract share the address string `0xe31906a2…` only because both were the
