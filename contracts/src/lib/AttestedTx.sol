@@ -35,6 +35,7 @@ library AttestedTx {
         uint64 nonce;
         uint8 status; // 1 == success. Attestcoin proves inclusion, NOT success.
         uint8 txType; // 0 legacy, 1 access-list, 2 EIP-1559, 3 blob, 4 EIP-7702
+        Log[] logs; // the receipt's events — the only readable account of what a foreign contract did
     }
 
     error NoChunks();
@@ -59,11 +60,12 @@ library AttestedTx {
         // check downstream would compare against address(0). Refuse rather than silently pass.
         if (toIsNull) revert ContractCreation();
 
-        // The receipt is the last chunk, whatever the transaction type. `logs` and `logsBloom` are
-        // decoded but unused here — a consumer that needs events can decode chunks[n-1] itself.
+        // The receipt is the last chunk, whatever the transaction type. `logsBloom` is decoded but
+        // unused; the logs themselves are kept, because for any source contract we did not write
+        // ourselves the calldata is not enough to say what happened — see `logs` below.
         bytes memory receiptChunk = chunks[chunks.length - 1];
         if (receiptChunk.length == 0) revert NoReceipt();
-        (c.status,,,) = abi.decode(receiptChunk, (uint8, uint64, Log[], bytes));
+        (c.status,, c.logs,) = abi.decode(receiptChunk, (uint8, uint64, Log[], bytes));
     }
 
     /// Mirrors the receipt-log tuple the encoder emits: `tuple(address, bytes32[], bytes)[]`.
@@ -90,4 +92,47 @@ library AttestedTx {
             a[i] = c.data[i + 4];
         }
     }
+
+    /// Find the first log at or after `from` that `emitter` produced with `topic0` as its signature.
+    /// Returns the index so the caller can key replay protection on it.
+    ///
+    /// Both halves of the predicate carry weight. Matching on `topic0` alone would accept an event
+    /// with the right shape emitted by *any* contract that happened to be in the same transaction —
+    /// anyone can deploy a contract that emits `Repay(address,address,address,uint256,bool)`, call it,
+    /// and have that transaction proven. Matching on `emitter` alone would accept a different event
+    /// from the right contract. The pair is what makes the log a statement by a specific protocol.
+    ///
+    /// The index matters as much as the match. One transaction can contain many logs — a routed
+    /// repayment on Sepolia's Aave V3 pool has been observed at log index 500 — and several of them
+    /// may be genuine repayments for different borrowers. A consumer that keys replay on the
+    /// transaction hash records the first and silently drops the rest; keying on the log is what
+    /// makes each one a distinct fact.
+    function findLog(Call memory c, address emitter, bytes32 topic0, uint256 from)
+        internal
+        pure
+        returns (uint256 index, bool found)
+    {
+        for (uint256 i = from; i < c.logs.length; i++) {
+            Log memory l = c.logs[i];
+            if (l.addr == emitter && l.topics.length > 0 && l.topics[0] == topic0) return (i, true);
+        }
+        return (0, false);
+    }
+
+    /// An indexed `address` topic, unpacked. Topics are 32 bytes; an address occupies the low 20.
+    function topicAddress(Log memory l, uint256 i) internal pure returns (address) {
+        return address(uint160(uint256(l.topics[i])));
+    }
+
+    /// The `i`-th 32-byte word of a log's non-indexed data.
+    function word(Log memory l, uint256 i) internal pure returns (uint256 v) {
+        if (l.data.length < (i + 1) * 32) revert ShortLogData();
+        bytes memory d = l.data;
+        uint256 off = 32 + i * 32;
+        assembly {
+            v := mload(add(d, off))
+        }
+    }
+
+    error ShortLogData();
 }

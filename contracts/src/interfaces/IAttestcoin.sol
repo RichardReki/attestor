@@ -72,4 +72,34 @@ interface IChainInfo {
     function get_chain_by_key(uint64 chainKey) external view returns (ChainResult memory);
 
     function is_height_attested(uint64 chainKey, uint64 height) external view returns (bool);
+
+    /// What `get_latest_attestation_height_and_hash` returns.
+    ///
+    /// The field is called `hash`, and it is NOT the source chain's block hash. It is Attestcoin's
+    /// own continuity digest for that chain — `LastDigest` in the attestation pallet, the running
+    /// `keccak256(blockNumber ++ root ++ prevDigest)` chain. There is no getter anywhere on
+    /// `ChainInfo` that returns a source header hash, and nothing in the signed attestation carries
+    /// a timestamp either. A consumer that reads this field expecting an Ethereum block hash gets a
+    /// value that is the right type, is never null, and never matches. We do not read it; the field
+    /// is declared only because the tuple has to be decoded in full to reach `height`.
+    ///
+    /// Verified against the live precompile on CC3 Testnet rather than inferred: calling this with
+    /// `chainKey 1` returns `(11603098, 0x00b2e1cd…, true, true)` — four words, in this order.
+    struct HeightHashResult {
+        uint64 height;
+        bytes32 hash; // continuity digest, NOT a source block hash. See above.
+        bool isAttestation; // false when the answer came from a checkpoint rather than an attestation
+        bool exists;
+    }
+
+    /// The newest source height Attestcoin has attested for this chain.
+    ///
+    /// This is the only clock a consumer gets. Because the attested data carries no timestamp, "how
+    /// old is this repayment" can only be answered in source blocks: `latest - proven`. Anything
+    /// phrased in seconds is either using the Creditcoin block time of the posting transaction —
+    /// which says when the proof was submitted, not when the repayment happened — or inventing it.
+    function get_latest_attestation_height_and_hash(uint64 chainKey)
+        external
+        view
+        returns (HeightHashResult memory);
 }
