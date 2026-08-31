@@ -1,107 +1,196 @@
-# Attestor — demo video script (~2:40)
+# Demo video script — Attestor
 
-The one idea to leave a judge with: **an agent can propose anything, but it cannot fabricate the
-fact it acts on.** Every step below is real and on-chain — the repayment on Sepolia and the posting
-on Creditcoin both have transaction hashes. Nothing is mocked.
+**Target: 3:30. Hard ceiling 5:00.** Six segments. Everything below is a real command against a live
+chain; nothing is staged and nothing needs a private key except the one optional segment marked so.
 
-Recorded assets: a terminal, the Sepolia explorer, the CC3 explorer, and `web/index.html`.
+The whole video exists to land one sentence, and every segment is either setting it up or paying it
+off:
 
----
+> **This person has never heard of us. We proved what they did on Aave, and now they have credit on
+> Creditcoin that nobody — including us — can forge.**
 
-## 0:00 — Cold open (the thesis, said plainly)
-
-> "This is a credit history you cannot lie to. Loan repayments happen on Ethereum, where the money
-> is. The record of them lives on Creditcoin — and it can only be written if the repayment provably
-> happened. Not claimed. Proven."
-
-Screen: the evidence page (`web/index.html`) at the top — the two-line thesis and the honest-status
-line under it.
-
-## 0:18 — The real repayment (Sepolia explorer)
-
-Open the repay transaction:
-`https://sepolia.etherscan.io/tx/0x49592b0cf86b489ab5e456ccf470ae1b444521fc982e04f46cf85ad27ea442d4`
-
-> "A borrower repays 250 dollars toward loan seven. This is a real transaction — the tokens actually
-> moved to the lender, and it emitted a Repaid event. Status: success."
-
-Point at: the `Repaid` log, and the ERC-20 transfer of 250 mUSD to the lender.
-
-> "That last part matters. A repayment that *reverted* would still be in the block, still provable.
-> So proving it happened is not the same as proving it succeeded — and the difference is the whole
-> product."
-
-## 0:45 — The proof pipeline, live (terminal)
-
-```
-cd spike && node spike.mjs
-```
-
-> "Here is the pipeline, end to end, against the live chain. It takes a real Sepolia transaction,
-> gets an Attestcoin proof from the hosted prover, and verifies that proof on Creditcoin through the
-> BlockProver precompile."
-
-Point at: `verifySingle -> true`, then the two rejected forgeries.
-
-> "And two forgeries — a tampered transaction, a wrong source chain — rejected on-chain. No key, no
-> gas. You can run this yourself."
-
-## 1:15 — The seven checks (evidence page)
-
-Scroll to "What a proof settles" and "What the loan book refuses".
-
-> "Attestcoin proves one thing: a transaction was included in a confirmed block. It does not prove
-> it succeeded, that it called the right contract, the right function, that the sender is who the
-> proof claims, that it's recent, or that you haven't already posted it. Every one of those is the
-> book's job."
-
-Point down the refusal table.
-
-> "Crediting a borrower who didn't sign. An impostor loan contract. A repayment that reverted.
-> Posting the same one twice. Every row is a test that passes."
-
-## 1:40 — It's tested against reality, not against itself (terminal)
-
-```
-cd contracts && forge test
-```
-
-> "Twenty-eight contract tests. Twenty-two of them reject a forgery."
-
-```
-node tools/live-check.mjs
-```
-
-> "And because a mocked test can only tell you the contract is self-consistent, this last one
-> re-checks six assumptions about the precompiles against the live chain — every run, with a fresh
-> proof. That layer caught a bug we shipped: our chain-info interface was wrong, every mocked test
-> passed, and it reverted every time on the real chain. We fixed it and kept the check."
-
-## 2:10 — The posting on Creditcoin
-
-> "The agent watches for repayments, waits about eight minutes for attestation — that delay is a real
-> constraint, not a bug, and we show exactly why — then posts to the book on Creditcoin, which
-> re-derives everything and writes the borrower's history."
-
-Open the CC3 `post` transaction (`0x0f3d4ca0…`) and its `RepaymentPosted` event; show the book's
-`totalRepaid` for the borrower reading 250000000 and `repaymentCount` 1.
-
-> "And here it is on Creditcoin. The agent proved that repayment and posted it — the book re-derived
-> every field and wrote it to the borrower's history. 250 dollars, loan seven, from a transaction
-> that provably happened. A real Ethereum repayment, now an entry in a Creditcoin credit history that
-> no one can forge."
-
-## 2:30 — Close
-
-> "Attestor. A record of real economic facts, on the chain built to hold them — where the agent
-> proposes, and the chain decides. Even we can't write a lie into it."
-
-Screen: the deployed addresses on the evidence page.
+Say that sentence out loud at 0:20 and again at 3:00. Judges watch forty of these; one clear claim
+they can repeat back is worth more than six features they cannot.
 
 ---
 
-### Recording notes
-- Everything at 0:18, 0:45, 1:40 is real and runnable **now**; record those first.
-- `spike.mjs` and `live-check.mjs` each take a minute or two (they wait on the live prover) — record,
-  then speed the wait in the edit.
-- The CC3 posting is live (tx `0x0f3d4ca0…`); the whole loop can be re-run with `node tools/post-once.mjs`.
+## Before you hit record
+
+Open these and nothing else. Close Slack, mail, notifications.
+
+| Window | What |
+|---|---|
+| **A** Terminal | `cd f:\Hacks\attestor`, font size up to ~18pt so it reads on a phone |
+| **B** Browser tab 1 | https://sepolia.etherscan.io/address/0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951 (Aave V3 Pool) |
+| **C** Browser tab 2 | https://creditcoin-testnet.blockscout.com/address/0xc3762daB9AB246771a91B764d0E45f03619A61ea (AaveLoanBook) |
+| **D** Browser tab 3 | `contracts/src/AaveLoanBook.sol` on GitHub |
+
+Set these once in terminal A so the later segments are one command each:
+
+```powershell
+$env:AAVE_BOOK="0xc3762daB9AB246771a91B764d0E45f03619A61ea"
+```
+
+Do a full dry run first. `tools/post-aave.mjs --dry` picks a *fresh* repayment each time, so the
+addresses you rehearse with will not be the ones you record — that is the point, but check it runs.
+
+---
+
+## Segment 1 — the claim (0:00–0:25)
+
+**Screen:** slide 1 of `docs/deck.pdf`, or just the README top in the browser.
+
+**Say:**
+
+> Creditcoin exists so credit history can be verified. But the lending happens on Ethereum. Bridging
+> that record usually means trusting a relayer's word — and a credit history you can forge is worth
+> nothing.
+>
+> So we built a loan book on Creditcoin that reads repayments made to **Aave** — a protocol we did
+> not write, used by people we have never met. **We cannot fabricate an entry in it.** Let me show
+> you.
+
+Do not explain the architecture yet. Claim first.
+
+---
+
+## Segment 2 — the source is not ours (0:25–1:00)
+
+**Screen:** window B, the Aave V3 Pool on Etherscan. Scroll the Events tab so real `Repay` events
+scroll past.
+
+**Say:**
+
+> This is the Aave V3 pool on Sepolia. We did not deploy it. These repayments are strangers paying
+> down their own debts — dozens a day, none of them ours.
+>
+> Everything you are about to see starts here, and that matters more than anything in our contracts.
+> A credit history you issue to yourself proves only that you can issue history to yourself.
+
+**Beat.** Let that sentence sit for a second before moving.
+
+---
+
+## Segment 3 — prove one, live (1:00–2:00)
+
+**Screen:** window A, full screen.
+
+```bash
+node tools/post-aave.mjs --dry
+```
+
+**While it runs, say:**
+
+> This picks a repayment that Aave logged and Creditcoin has already attested, then asks the
+> Attestcoin proof builder for a merkle and continuity proof of that transaction.
+
+**When it prints, point at the screen and read the actual values aloud:**
+
+> There. Address `0x…` repaid `…` USDC. I have never seen that address before this command ran —
+> and if I run it again I will get a different one, because people keep repaying.
+
+**Then point at the log index line specifically:**
+
+> This line is worth ten seconds. `eth_getLogs` numbers logs per *block*; the attested receipt
+> numbers them per *transaction*. Here that is 6 and 40. Use the wrong one and on a short receipt you
+> revert — but on a long one you silently credit the wrong borrower. We found that by checking
+> instead of assuming.
+
+That last beat is the single most convincing thing in the video for a technical judge. Do not rush it.
+
+---
+
+## Segment 4 — the chain refuses forgeries (2:00–2:40)
+
+**Screen:** window A.
+
+```bash
+cd spike && node aave-proof.mjs
+```
+
+**Say, over the output:**
+
+> Same pipeline, keyless, plus two negative controls. It proves a real Aave repayment, recovers the
+> `Repay` event out of the attested payload, and checks every field against what Sepolia's own RPC
+> reports.
+
+**When the tamper control prints:**
+
+> Then it flips one byte of the transaction and asks the precompile again — *"Merkle proof validation
+> failed."* Not our check. Creditcoin's.
+
+**Optional 10 seconds, screen D:** scroll `AaveLoanBook.sol` to the checks.
+
+> Attestcoin proves a transaction was *included in a block*. Not that it succeeded, not that it
+> touched Aave, not that the person claiming it sent it. Everything the proof does not say, the book
+> checks itself.
+
+---
+
+## Segment 5 — the payoff (2:40–3:15)
+
+**Screen:** window C, the AaveLoanBook on Blockscout. Use Read Contract → `totalRepaid` with the
+borrower address from segment 3, then the CreditLine.
+
+**Say:**
+
+> Here is the book on Creditcoin. `totalRepaid` for that borrower — the one I met sixty seconds ago —
+> is real, and it got there through one precompile call that either verified or reverted.
+>
+> And a credit line reading this book gives them a limit. **Twenty-five USDC of credit, sized
+> entirely by what they did on Ethereum.** An address with no Aave history gets zero.
+>
+> I cannot draw that loan. `borrow` credits `msg.sender`, and the key is theirs. That is the honest
+> version — the history belongs to them, so the money does too.
+
+**Then the sentence again, slowly:**
+
+> This person has never heard of us. We proved what they did on Aave, and now they have credit on
+> Creditcoin that nobody, including us, can forge.
+
+---
+
+## Segment 6 — what we are not claiming (3:15–3:30)
+
+**Screen:** the honest-status box of the deck, or just your face.
+
+**Say:**
+
+> Two things I am not claiming. We also built the same book against a contract we wrote ourselves —
+> it is still in the repo, deliberately, as the control. Every check passes there too, and it proves
+> nothing, which is exactly why the Aave one matters.
+>
+> And Attestcoin proves inclusion, not success. We found seven things about the protocol its
+> documentation does not say, including two that make a consumer written from the docs fail outright.
+> They are written up and reported.
+>
+> Repository, addresses and every transaction hash are in the README. Thanks for watching.
+
+---
+
+## Optional segment — post it live (+40s)
+
+Only if the video is running short and you are comfortable using the key on camera. **Blank the
+terminal history first** and set `PRIVATE_KEY` in a window that is not being recorded.
+
+```bash
+node tools/post-aave.mjs
+```
+
+Then show the transaction on Blockscout. It is stronger than a read, but a live send that fails on
+camera costs more than it gains — the `--dry` run plus the already-landed transaction
+(`0x7fb71b18…`) makes the same point with none of the risk.
+
+---
+
+## Recording notes
+
+- **One take per segment**, not one take for the video. Six short recordings cut together beat one
+  long take you keep restarting.
+- **Terminal font ~18pt.** Judges watch on laptops and phones. If the log-index line is unreadable,
+  segment 3 is wasted.
+- **Do not read this script aloud.** Know the beat of each segment and say it in your own words. The
+  sentence at 0:20 and 3:00 is the only one worth memorising.
+- **Silence is fine** while a command runs. Do not fill it with "so basically".
+- If a live command fails on camera, say so and move on. This project's whole argument is that it
+  reports what actually happened.

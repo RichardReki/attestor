@@ -112,7 +112,8 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
   `0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951` on Ethereum Sepolia — a contract we did not deploy.
   A real third-party repayment of 25 USDC (Sepolia tx `0x2f8901c4…`, block 11,605,409) was proven
   and posted (CC3 tx `0x7fb71b18…`, 221,790 gas); the book now reads `totalRepaid = 25000000` for
-  that borrower. The control path is also live: `MockUSD` `0xCFd5E8e6…` + `LoanRepayment`
+  that borrower, and a `CreditLine` bound to it (`0xA595C95964efaec78D85Ad18D38a05004440Bbb2`) reports a **credit limit of 25000000**
+  for them — against **0** for an address with no Aave history. The control path is also live: `MockUSD` `0xCFd5E8e6…` + `LoanRepayment`
   `0x08F8b91A…` on Sepolia, `AttestedLoanBook` `0xe31906a2A7162b865b672a3a51B75813564db5e9` and a
   `CreditLine` consumer `0xC45f8594579191b5125B24f721cA4e2f93811A8c` on CC3, where a proven
   repayment funded a real undercollateralised loan (tx `0xb62ffcff…`). Nothing is mocked on either
@@ -131,7 +132,8 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
   been proven and recorded (Sepolia `0x2f8901c4…` → CC3 `0x7fb71b18…`, book reads totalRepaid
   25000000). `spike/aave-proof.mjs` reproduces the whole thing keylessly and picks a *fresh*
   repayment each run, so the demonstration cannot go stale. Not yet done: the agent watches one
-  repayment at a time rather than running continuously against Aave, and `CreditLine` is wired to
-  the control book rather than the Aave one. Nothing in the flow is mocked.
+  repayment at a time rather than running continuously against Aave, and the Aave-sourced credit
+  limit is demonstrated as a read rather than a drawn loan — the borrower is a stranger, so only
+  they can draw it, which is the point rather than a gap. Nothing in the flow is mocked.
 - **Ecosystem contribution:** seven undocumented Attestcoin behaviours found and documented, two of
   which make a consumer written from the current docs fail outright — reported for the team's benefit.

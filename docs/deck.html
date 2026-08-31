@@ -145,6 +145,7 @@
         <div><span class="k">AaveLoanBook</span> 0xc3762daB…61ea (CC3)</div>
         <div><span class="k">Aave V3 Pool</span> 0x6Ae43d32…8951 (Sepolia) — not ours</div>
         <div><span class="k">repay (Sep)</span> 0x2f8901c4… &nbsp; <span class="k">post (CC3)</span> 0x7fb71b18…</div>
+        <div><span class="k">CreditLine &nbsp;</span> 0xA595C959…Bbb2 (CC3) — reads the Aave book</div>
         <div><span class="k">control &nbsp;&nbsp;&nbsp;&nbsp;</span> AttestedLoanBook 0xe31906a2…5e9 · CreditLine 0xC45f8594…</div>
         <div><span class="k">BlockProver</span> 0x…0FD2 &nbsp; <span class="k">ChainInfo</span> 0x…0FD3</div>
       </div>
@@ -159,8 +160,12 @@
       (<span class="mono">0x2f8901c4…</span>, block 11,605,409). We did not send it, did not fund it,
       and learned it existed by reading the chain. Its proof was posted to
       <code>AaveLoanBook</code> (<span class="mono">0x7fb71b18…</span>, 221,790 gas), which now reads
-      <span class="mono">totalRepaid 25000000</span> for that borrower — a public view call anyone can
-      make. Run <code>tools/post-aave.mjs</code> again and it picks a <i>different</i> repayment,
+      <span class="mono">totalRepaid 25000000</span> for that borrower. A <code>CreditLine</code>
+      bound to that book (<span class="mono">0xA595C959…Bbb2</span>) then reports a
+      <b>credit limit of 25000000</b> for them, against <b>0</b> for an address with no Aave history
+      — both public view calls anyone can make. We cannot draw that loan and do not pretend to:
+      <code>borrow()</code> credits <span class="mono">msg.sender</span> and the key is theirs. The
+      history belongs to the borrower, so the money does too. Run <code>tools/post-aave.mjs</code> again and it picks a <i>different</i> repayment,
       because people keep making them; a pinned fixture would go stale and quietly stop meaning
       anything.
       <br><br>
