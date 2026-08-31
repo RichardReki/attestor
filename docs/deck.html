@@ -69,7 +69,7 @@
 
   <header>
     <h1>Attestor</h1>
-    <div class="tag">A cross-chain loan repayment history you cannot lie to — built on Attestcoin.</div>
+    <div class="tag">A cross-chain loan repayment history you cannot lie to — built on USC.</div>
     <div class="meta">BUIDL CTC 2026 Fall · Ethereum Sepolia → Creditcoin CC3 Testnet · github.com/RichardReki/attestor</div>
   </header>
 
@@ -88,29 +88,30 @@
     really happened. The agent proposes; the on-chain book disposes. <b>Neither the agent nor we can
     write a false entry.</b></p>
     <div class="flow">
-      <div class="node"><div class="h">Ethereum Sepolia</div><div class="b">Borrower calls <code>repay()</code> — real USDC moves to the lender, emits <code>Repaid</code>.</div></div>
+      <div class="node"><div class="h">Aave V3 · Sepolia</div><div class="b">A stranger repays a debt. <b>Not our contract, not our borrower</b> — we cannot cause, populate or alter the <code>Repay</code> event.</div></div>
       <div class="node"><div class="h">Off-chain agent</div><div class="b">Watches, applies a risk gate, waits ~8 min for attestation, fetches the proof, proposes a posting.</div></div>
-      <div class="node key"><div class="h">Creditcoin CC3</div><div class="b"><code>AttestedLoanBook</code> verifies the proof on the BlockProver precompile, re-derives it, writes the history.</div></div>
+      <div class="node key"><div class="h">Creditcoin CC3</div><div class="b"><code>AaveLoanBook</code> verifies the proof on the USC BlockProver precompile, re-derives the event from the attested receipt, writes the history.</div></div>
     </div>
-    <p style="font-size:9pt;color:var(--sub)">Remove Attestcoin and there is no product: the book holds no trusted input of its own. Every write to a credit history is downstream of one precompile call — <code>0x…0FD2 . verify(…)</code> returning without reverting.</p>
+    <p style="font-size:9pt;color:var(--sub)">Remove USC and there is no product: the book holds no trusted input of its own — no owner-submitted number, no oracle, no signed report. Every write is downstream of one precompile call, <code>0x…0FD2 . verify(…)</code>, returning without reverting.</p>
+    <p style="font-size:9pt;color:var(--sub);margin-top:6px"><b>Why the source matters more than the checks.</b> A history you issue to yourself proves only that you can issue history to yourself. <code>AttestedLoanBook</code> — same precompile, same checks, but proving repayments to a contract we wrote — is kept alongside as the control. The contrast is the argument.</p>
   </section>
 
   <section>
-    <h2>The security model — Attestcoin proves <i>less</i> than it appears</h2>
+    <h2>The security model — USC proves <i>less</i> than it appears</h2>
     <p>It proves a transaction was <b>included in a confirmed block</b> — not that it <i>succeeded</i>,
-    called the right contract, or was sent by who it claims. The book enforces, on-chain, every
+    touched the contract you care about, or was sent by who it claims. The book enforces, on-chain, every
     property the proof does not:</p>
     <table>
       <tr><th>Check</th><th>Without it</th></tr>
       <tr><td class="c">status == 1</td><td>a reverted repayment posts as if it paid</td></tr>
       <tr><td class="c">chainId (resolved)</td><td>a valid proof from the wrong chain is accepted</td></tr>
-      <tr><td class="c">source contract</td><td>any contract's call is posted as a repayment</td></tr>
-      <tr><td class="c">repay selector</td><td>a different function passes as a repayment</td></tr>
-      <tr><td class="c">borrower == sender</td><td>credit is assigned to whoever relays the proof</td></tr>
-      <tr><td class="c">freshness + maxAge</td><td>an attested repayment is postable forever</td></tr>
-      <tr><td class="c">tx-hash consumed</td><td>one repayment is posted again and again</td></tr>
+      <tr><td class="c">emitter + topic, as a pair</td><td>anyone deploys a contract emitting Aave's event and is believed</td></tr>
+      <tr><td class="c">borrower from the <i>event</i></td><td>credit is assigned to whoever relays the proof</td></tr>
+      <tr><td class="c">repayer == borrower</td><td>one funded account mints standing for any address it likes</td></tr>
+      <tr><td class="c">freshness, in source blocks</td><td>an attested repayment is postable forever</td></tr>
+      <tr><td class="c">consumed <i>per log</i></td><td>a transaction repaying several debts records only the first</td></tr>
     </table>
-    <p style="font-size:9pt;color:var(--sub);margin-top:6px">Plus economic guards: zero-amount and self-payment repayments are refused on both chains, because an entry is only worth something if real money moved. <b>28 contract tests; 22 reject a forgery.</b></p>
+    <p style="font-size:9pt;color:var(--sub);margin-top:6px">Three of those are forced by reading a protocol we did not write. Aave's <code>repay</code> takes <code>amount = uint256 max</code> to mean "all of it", so the calldata does not say how much was repaid — only the event does. One transaction can repay several debts; a routed repayment on this pool was observed at log index 500. And a USC attestation carries no timestamp anywhere, so age is <code>latestAttestedHeight − provenHeight</code> and cannot honestly be quoted in seconds. <b>51 contract tests; 28 reject a forged or invalid input.</b></p>
   </section>
 
   <div class="pb"></div>
@@ -135,7 +136,7 @@
       <div>
         <div class="kv">
           <div><span class="k">reproduce &nbsp;</span> <code>node spike.mjs</code></div>
-          <div><span class="k">tests &nbsp;&nbsp;&nbsp;&nbsp;</span> <code>forge test</code> — 28 pass</div>
+          <div><span class="k">tests &nbsp;&nbsp;&nbsp;&nbsp;</span> <code>forge test</code> — 51 pass</div>
           <div><span class="k">live &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <code>node tools/live-check.mjs</code></div>
           <div><span class="k">agent &nbsp;&nbsp;&nbsp;&nbsp;</span> 20 tests, tsc clean</div>
         </div>

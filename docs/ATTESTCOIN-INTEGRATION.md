@@ -1,8 +1,15 @@
-# Attestcoin integration
+# USC / Attestcoin integration
 
-How Attestor uses the Attestcoin Protocol, why it is in the product's main flow rather than beside
-it, and seven things we learned about the protocol that its documentation does not say. Everything
-below is reproducible from this repository with no key and no gas — the commands are in each section.
+How Attestor uses **USC — Universal Smart Contracts** — why it is in the product's main flow rather
+than beside it, and seven things we learned about the protocol that its documentation does not say.
+Everything below is reproducible from this repository with no key and no gas — the commands are in
+each section.
+
+A note on names, since the ecosystem uses several for overlapping things. **USC** is the platform;
+the **Attestcoin Protocol** is the part of it that proves facts about other chains; **BlockProver**
+(`0x…0FD2`) and **ChainInfo** (`0x…0fD3`) are the two runtime precompiles that expose it to a
+contract; and **`@gluwa/usc-sdk`** is the TypeScript client for building the proofs off-chain. This
+document says "the precompile" a great deal, and every one of those is USC.
 
 ---
 
@@ -120,7 +127,7 @@ Reproduce the whole proof pipeline with no key and no gas:
 
 ```bash
 cd spike && npm install && node spike.mjs   # a fresh Sepolia tx → hosted prover → verify() on CC3 → true
-cd contracts && forge test                  # 28 tests; 22 reject a forged or invalid input
+cd contracts && forge test                  # 51 tests; 28 reject a forged or invalid input
 node tools/live-check.mjs                    # re-checks 6 precompile behaviours against the live chain
 ```
 

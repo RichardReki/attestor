@@ -2,41 +2,80 @@
 
 An autonomous agent watches loan repayments happen on Ethereum and posts them to a credit history on
 Creditcoin — but it **cannot fabricate a repayment that did not happen**, because the on-chain book
-re-derives every one from an Attestcoin proof of the source transaction and refuses anything that
-does not check out.
+re-derives every one from a **USC (Universal Smart Contracts)** proof of the source transaction,
+through the Attestcoin BlockProver precompile, and refuses anything that does not check out.
 
 That is Creditcoin's own thesis made literal: the money moves where the money lives (Ethereum), and
 the *record of it* lives where a record can be trusted (Creditcoin). The agent proposes; the chain
 disposes; neither the agent nor we can write a false entry into someone's history.
 
+**The repayments are not ours.** `AaveLoanBook` reads the **Aave V3 Pool on Sepolia**
+(`0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951`) — a lending protocol we did not write, used by people
+we have never met, whose `Repay` events we cannot cause, populate or alter. This matters more than
+any check in the contract. A history you issue to yourself proves only that you can issue history to
+yourself; the proof machinery was never the weak link, the *source fact* was. `AttestedLoanBook`
+proves repayments to a source contract of our own and is kept alongside deliberately, as the control:
+same seven checks, same precompile, evidence worth far less. The contrast is the argument.
+
 And the history is not write-only. `CreditLine` reads it and lends against it: a borrower's
 undercollateralised credit limit is set *entirely* by their attested, cross-chain repayment record —
-no collateral, no off-chain score. Because the record cannot be forged (that is the seven checks),
-neither can the credit. A repayment that happened on Ethereum becomes the sole determinant of credit
-on Creditcoin — proven, drawn, and closed on-chain, both sides.
+no collateral, no off-chain score. Because the record cannot be forged, neither can the credit. A
+repayment that happened on Ethereum becomes the sole determinant of credit on Creditcoin — proven,
+drawn, and closed on-chain, both sides.
 
-Built for **BUIDL CTC 2026 Fall** (2026-08-13 → 2026-09-06). Every line of this repository was
+Built for **BUIDL CTC 2026 Fall** (2026-08-13 → 2026-09-14). Every line of this repository was
 written inside the contest window; see `git log` for the first commit. Prior work of ours
 (RotorVault, on Flare) is named here as the origin of the *pattern* — an agent proposes, an on-chain
 rule disposes — and nothing from it is reused: different chain, different protocol, different code.
 
 **Live evidence page:** https://richardreki.github.io/attestor/ — the attestation gap and the attack/refusal table, read live from both chains in your browser.
 
+## Reading a protocol you did not write
+
+Pointing the same proof machinery at somebody else's contract changes three things, and each was
+settled against the live chain rather than assumed:
+
+1. **The fact lives in a log, not in calldata.** `Pool.repay(asset, amount, rateMode, onBehalfOf)`
+   accepts `amount = type(uint256).max` to mean "all of it", so the calldata does not say how much
+   was repaid — only the emitted `Repay` event does. Reading function arguments works when you wrote
+   the source function and put the number there yourself. It does not generalise.
+2. **Replay is keyed per LOG, not per transaction.** One transaction can repay several debts; a
+   routed repayment on this pool was observed at log index 500. A book keyed on the transaction
+   records the first repayment in it and silently discards the rest.
+3. **Freshness is measured in source blocks.** A USC attestation carries no timestamp anywhere, so
+   age is `latestAttestedHeight - provenHeight`. Any figure quoted in seconds is either the
+   Creditcoin block time of the *posting* transaction — which says when the proof was submitted, not
+   when the repayment happened — or invented.
+
+And one that is a judgement call rather than a mechanic: **Aave lets anyone repay anyone's debt**, so
+the event's `user` and `repayer` are different questions. Only a self-repayment earns credit here. A
+debt someone else paid is evidence about *them*, and crediting it would let one funded account
+manufacture standing for any address it likes. The third-party case is still recorded, under
+`repaidByOthers`, because discarding a proven fact to keep a number tidy is its own dishonesty. One
+of the 81 repayments in the sampled window is genuinely third-party — it is the test fixture.
+
 ## Status
 
-**The full loop is live.** A real repayment on Sepolia has been proven and posted to the loan book
-on Creditcoin, which now records the borrower's credit history on-chain — end to end, nothing mocked
-(transactions below). 48 tests pass — 28 on the contracts, 20 on the agent — and six claims about the
+**The full loop is live.** A real repayment has been proven and posted to a loan book on Creditcoin,
+which now records the borrower's credit history on-chain — end to end, nothing mocked (transactions
+below). **71 tests pass — 51 on the contracts, 20 on the agent** — and six claims about the
 precompiles are re-checked against the live CC3 runtime on every run (via `tools/live-check.mjs`),
 because mocked tests cannot make claims about a precompile they are mocking.
 
 Reproduce the whole proof pipeline yourself, with no key and no gas:
 
 ```bash
-cd spike && npm install && node spike.mjs      # Sepolia tx -> proof -> verified on CC3
-cd contracts && forge test                     # 28 forge tests; 22 of them reject a forged or invalid input
-node tools/live-check.mjs                      # the precompile assumptions, against the real chain
+cd spike && npm install
+node spike.mjs                 # any Sepolia tx -> proof -> verified on CC3, plus two negative controls
+node aave-proof.mjs            # a REAL Aave V3 repayment by a stranger, proven, with the Repay event
+                               # recovered from the attested receipt and matched against Sepolia's RPC
+cd ../contracts && forge test  # 51 forge tests; 28 of them reject a forged or invalid input
+node ../tools/live-check.mjs   # the precompile assumptions, against the real chain
 ```
+
+`aave-proof.mjs` is the one to run if you only run one. It is keyless, takes about twenty seconds,
+and answers the only question that matters about this design: whether a repayment made by somebody
+we have never met, to a protocol we did not write, survives the trip intact.
 
 ## What Attestcoin actually guarantees — and what it does not
 

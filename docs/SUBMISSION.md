@@ -31,25 +31,44 @@ record of it lives where a record can be trusted. It is deliberately built aroun
 does **not** prove — inclusion is not success — so the book re-derives and re-checks every property
 of the repayment on-chain before it counts.
 
-## Attestcoin Protocol integration summary
+## USC Integration Summary
 
-Attestcoin is the main flow, not a feature beside it: remove it and there is no product. The loan
-book on Creditcoin holds no trusted input of its own — it learns a repayment happened only by
-verifying an Attestcoin proof of the source transaction through the BlockProver precompile
-(`0x…0FD2`). Every write to a credit history is downstream of that one call.
+**USC — Universal Smart Contracts — is the substrate this project is built out of, not a library it
+calls.** Concretely, the parts of USC in use are the **Attestcoin Protocol** and its two runtime
+precompiles, reached from Solidity directly and from TypeScript through `@gluwa/usc-sdk` 0.18.0:
 
-Because Attestcoin proves only that a transaction was *included in a confirmed block* — not that it
-succeeded, called the right contract, or was sent by who it claims — the book enforces seven checks
-on-chain that the proof does not: `status == 1`; the source `chainId` (resolved via the ChainInfo
-precompile `0x…0FD3`, never a raw chainKey); the source contract; the `repay` selector; the borrower
-== the transaction's real sender; freshness; and replay consumption. Plus two economic guards
-(zero-amount and self-payment repayments are refused), because a credit entry is only worth something
-if real money moved.
+| USC surface | Where | What it does here |
+|---|---|---|
+| **BlockProver** precompile `0x…0FD2` | `AaveLoanBook.post`, `AttestedLoanBook.post` | Verifies that a source-chain transaction was included in a confirmed block. Called in-contract, first, before any state is touched. |
+| **ChainInfo** precompile `0x…0fD3` | same, plus `LiveProbe` | `get_chain_by_key` resolves a `chainKey` to a real `chainId`; `get_latest_attestation_height_and_hash` supplies the only clock the system has. |
+| **`@gluwa/usc-sdk`** `proofProvider`, `chainInfo` | `agent/src/attestcoin.ts`, `spike/*.mjs`, `tools/post-aave.mjs` | Builds the merkle + continuity proof against the hosted Proof Builder and waits on attestation. |
 
-A full write-up, including seven undocumented protocol facts we found and reported while building
-(e.g. the precompile reverts rather than returning `false`; `chainKey` is environment-scoped; the
-proof envelope is `(uint8, bytes[])` not `bytes[]`, which the SDK's own docs get wrong), is in
-`docs/ATTESTCOIN-INTEGRATION.md`.
+Remove USC and there is no product left. The loan book on Creditcoin accepts no trusted input of its
+own — no owner-submitted number, no oracle, no signed report. It learns that a repayment happened by
+verifying a USC proof of the source transaction, and every write to a credit history is downstream of
+that one call. A borrower's undercollateralised credit limit is then computed *entirely* from that
+attested record.
+
+**Where the work went is the gap between what USC proves and what a lender needs.** Attestcoin proves
+that a transaction was *included in a confirmed block*. That is all it proves. It does not prove the
+transaction succeeded, that it touched the contract you care about, or that the person claiming it
+sent it. A consumer that treats "attested" as "happened the way I wanted" is exploitable, so the book
+re-derives every property on-chain and refuses anything that does not check out:
+
+- `status == 1` — a reverted repayment is still in the block and still merkle-provable
+- the source `chainId`, resolved through ChainInfo, never a raw `chainKey` (which is
+  environment-scoped: `chainKey 1` is Sepolia on CC3 Testnet and Ethereum on Mainnet, so a contract
+  hardcoding it changes which chain it trusts on promotion, silently)
+- the emitting contract, and the event signature, as a pair
+- the borrower, read from the event rather than from whoever submitted the proof
+- freshness, measured in **source blocks** — because no USC attestation carries a timestamp anywhere
+- replay, consumed per **log** rather than per transaction
+
+Seven undocumented protocol facts we found and reported while building are written up in
+[`docs/ATTESTCOIN-INTEGRATION.md`](ATTESTCOIN-INTEGRATION.md) — among them that the precompile
+*reverts* rather than returning `false`, so `if (!verify(...))` is dead code; and that the proof
+envelope is `(uint8 txType, bytes[] chunks)` rather than the `bytes[]` the SDK's own documentation
+specifies, which means a consumer written from the docs cannot decode a single real transaction.
 
 ## GitHub repository
 
@@ -78,7 +97,7 @@ https://github.com/RichardReki/attestor (public; README + full history inside th
 ## Project requirements — self-check
 
 - **Original work created during the hackathon:** yes — first commit `84c511a` is inside the
-  2026-08-13 → 09-06 window; prior work (RotorVault, on Flare) is named as the pattern's origin and
+  2026-08-13 → 09-14 window; prior work (RotorVault, on Flare) is named as the pattern's origin and
   nothing from it is reused (different chain, protocol, code).
 - **Deployed on a testnet:** yes — `MockUSD` `0xCFd5E8e6…` and `LoanRepayment` `0x08F8b91A…` on
   Ethereum Sepolia, with a real 250-mUSD repayment proven on-chain (tx `0x49592b0c…`).
