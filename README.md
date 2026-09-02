@@ -167,9 +167,9 @@ checks exist, and it is why we do not treat a green unit suite as evidence about
 
 | | |
 | --- | --- |
-| **`AaveLoanBook`** (CC3 Testnet) | [`0xc3762daB9AB246771a91B764d0E45f03619A61ea`](https://creditcoin-testnet.blockscout.com/address/0xc3762daB9AB246771a91B764d0E45f03619A61ea) — **reads Aave V3, a protocol we did not write** |
+| **`AaveLoanBook`** (CC3 Testnet, source-verified) | [`0xc3762daB9AB246771a91B764d0E45f03619A61ea`](https://creditcoin-testnet.blockscout.com/address/0xc3762daB9AB246771a91B764d0E45f03619A61ea) — **reads Aave V3, a protocol we did not write** |
 | Aave V3 Pool (Sepolia) | [`0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951`](https://sepolia.etherscan.io/address/0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951) — not ours, not deployed by us |
-| **`CreditLine`** (Aave-sourced, CC3) | [`0xA595C95964efaec78D85Ad18D38a05004440Bbb2`](https://creditcoin-testnet.blockscout.com/address/0xA595C95964efaec78D85Ad18D38a05004440Bbb2) — **sizes credit from the Aave history** |
+| **`CreditLine`** (Aave-sourced, CC3, source-verified) | [`0xA595C95964efaec78D85Ad18D38a05004440Bbb2`](https://creditcoin-testnet.blockscout.com/address/0xA595C95964efaec78D85Ad18D38a05004440Bbb2) — **sizes credit from the Aave history** |
 | `CreditLine` (control, CC3) | [`0xC45f8594579191b5125B24f721cA4e2f93811A8c`](https://creditcoin-testnet.blockscout.com/address/0xC45f8594579191b5125B24f721cA4e2f93811A8c) — same contract over the self-dealt book |
 | `AttestedLoanBook` (CC3 Testnet) | [`0xe31906a2A7162b865b672a3a51B75813564db5e9`](https://creditcoin-testnet.blockscout.com/address/0xe31906a2A7162b865b672a3a51B75813564db5e9) — the control: same checks, source we wrote |
 | `MockUSD` (Sepolia) | [`0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef`](https://sepolia.etherscan.io/address/0xCFd5E8e697A1956F063B9Bb71E9E33fd78F3d0ef) — the control's token |
@@ -192,7 +192,8 @@ This is the evidence the project stands on. Nobody involved is us.
 
 3. **A `CreditLine` bound to that book now gives them a credit limit** —
    [`0xA595C95964efaec78D85Ad18D38a05004440Bbb2`](https://creditcoin-testnet.blockscout.com/address/0xA595C95964efaec78D85Ad18D38a05004440Bbb2).
-   `creditLimit(0x2C56b94f…)` returns **25000000**; the same call for an address with
+   Both contracts are source-verified on Blockscout, so every function below is callable from the
+   explorer without trusting our word for the ABI. `creditLimit(0x2C56b94f…)` returns **25000000**; the same call for an address with
    no Aave history returns **0**. Both are public view calls; check them yourself.
 
    We cannot draw that loan and do not pretend to — `borrow()` credits `msg.sender` and the key is
